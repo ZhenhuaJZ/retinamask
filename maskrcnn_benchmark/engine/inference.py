@@ -321,6 +321,8 @@ class COCOResults(object):
 
     def __repr__(self):
         # TODO make it pretty
+        for type in self.result.keys():
+            print(type)
         return repr(self.results)
 
 

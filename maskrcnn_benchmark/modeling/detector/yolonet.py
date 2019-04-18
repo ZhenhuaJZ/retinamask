@@ -6,6 +6,10 @@ Implements the Generalized R-CNN framework
 import torch
 from torch import nn
 
+import sys
+
+# sys.path.append('/home/stirfryrabbit/Projects/Research_Project/sheepCount')
+
 from maskrcnn_benchmark.structures.image_list import to_image_list
 
 from ..backbone import build_backbone
@@ -15,7 +19,9 @@ from maskrcnn_benchmark.modeling.roi_heads.mask_head.mask_head import build_roi_
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 import copy
 
-class RetinaNet(nn.Module):
+from maskrcnn_benchmark.yolov3.models import *
+
+class YoloNet(nn.Module):
     """
     Main class for RetinaNet
     It consists of three main parts:
@@ -25,10 +31,11 @@ class RetinaNet(nn.Module):
     """
 
     def __init__(self, cfg):
-        super(RetinaNet, self).__init__()
+        super(YoloNet, self).__init__()
         self.cfg = copy.deepcopy(cfg)
-        self.backbone = build_backbone(cfg)
-        self.rpn = build_retinanet(cfg)
+        self.yolonet = Darknet(cfg.YOLONET.CONFIG_PATH)
+        # self.backbone = build_backbone(cfg)
+        # self.rpn = build_retinanet(cfg)
         self.mask = None
         if cfg.MODEL.MASK_ON:
             self.mask = build_roi_mask_head(cfg)
@@ -52,13 +59,18 @@ class RetinaNet(nn.Module):
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
         images = to_image_list(images)
-        features = self.backbone(images.tensors)
+        # print("[debug] images: ", images)
+        # print("[debug] images.tensors: ", images.tensors)
+        print("[debug] images.tensors.size: ", images.tensors.shape)
 
+        # features = self.backbone(images.tensors)
+        output = self.yolonet(images.tensors, targets)
+        print(output)
         # Retina RPN Output
-        rpn_features = features
-        if self.cfg.RETINANET.BACKBONE == "p2p7":
-            rpn_features = features[1:]
-        (anchors, detections), detector_losses = self.rpn(images, rpn_features, targets)
+        # rpn_features = features
+        # if self.cfg.RETINANET.BACKBONE == "p2p7":
+        #     rpn_features = features[1:]
+        # (anchors, detections), detector_losses = self.rpn(images, rpn_features, targets)
         if self.training:
             losses = {}
             losses.update(detector_losses)
