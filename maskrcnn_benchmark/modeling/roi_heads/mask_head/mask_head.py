@@ -61,20 +61,38 @@ class ROIMaskHead(torch.nn.Module):
         if self.training:
             # during training, only focus on positive boxes
             all_proposals = proposals
+            '''
+            proposal: list[boxlist],  positive_inds: list[tensor]
+            '''
             proposals, positive_inds = keep_only_positive_boxes(proposals)
+        # print("[debug mask_head.py] type(proposals): ", type(proposals))
+        # print("[debug mask_head.py] len(proposals): ", len(proposals))
+        # print("[debug mask_head.py] proposals: ", proposals)
+        # print("[debug mask_head.py] proposals[0]: ", proposals[0])
+        # print("[debug mask_head.py] type(positive_inds): ", type(positive_inds))
+        # print("[debug mask_head.py] len(positive_inds): ", len(positive_inds))
+        # print("[debug mask_head.py] positive_inds: ", positive_inds)
+        # print("[debug mask_head.py] positive_inds[0]: ", positive_inds[0])
         if self.training and self.cfg.MODEL.ROI_MASK_HEAD.SHARE_BOX_FEATURE_EXTRACTOR:
             x = features
             x = x[torch.cat(positive_inds, dim=0)]
         else:
             x = self.feature_extractor(features, proposals)
+        # print("[debug mask_head.py] type(x): ", type(x))
+        # print("[debug mask_head.py] len(x): ", len(x))
+        # print("[debug mask_head.py] x.shape: ",x.shape)
         mask_logits = self.predictor(x)
-
+        # print("[debug mask_head.py] type(mask_logits): ", type(mask_logits))
+        # print("[debug mask_head.py] len(mask_logits): ", len(mask_logits))
+        # print("[debug mask_head.py] mask_logits.shape: ",mask_logits.shape)
         if not self.training:
             result = self.post_processor(mask_logits, proposals)
             return x, result, {}
 
         loss_mask = self.loss_evaluator(proposals, mask_logits, targets)
-
+        # print("[debug mask_head.py] type(mask_logits): ", type(loss_mask))
+        # print("[debug mask_head.py] len(mask_logits): ", len(loss_mask))
+        # print("[debug mask_head.py] loss_mask: ",loss_mask)
         return x, all_proposals, dict(loss_mask=loss_mask)
 
 

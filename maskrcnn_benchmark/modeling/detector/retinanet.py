@@ -52,13 +52,35 @@ class RetinaNet(nn.Module):
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
         images = to_image_list(images)
+        print("[debug retinanet.py] images.tensors.shape: ", images.tensors.shape)
         features = self.backbone(images.tensors)
 
         # Retina RPN Output
         rpn_features = features
         if self.cfg.RETINANET.BACKBONE == "p2p7":
             rpn_features = features[1:]
+        '''Retinanet module in rpn.retinanet'''
         (anchors, detections), detector_losses = self.rpn(images, rpn_features, targets)
+        print("[debug retinanet.py] detections: ", type(detections))
+        print("[debug retinanet.py] detector_losses: ", detector_losses)
+        print("[debug retinanet.py] len(anchors): ", len(anchors))
+        print("[debug retinanet.py] anchors[0]: ", anchors[0])
+        print("[debug retinanet.py] len(anchors[0][0]): ", len(anchors[0][0]))
+        print("[debug retinanet.py] anchors[0][0].bbox.shape: ", anchors[0][0].bbox.shape)
+        print("[debug retinanet.py] anchors[0][0].extra_fields: ", anchors[0][0].extra_fields)
+        # print("[debug retinanet.py] anchors[0]: ", anchors[0])
+
+        print("[debug retinanet.py] detections: ", detections)
+        print("[debug retinanet.py] type(detections): ", type(detections))
+        print("[debug retinanet.py] detections[0].bbox: ", detections[0].bbox)
+        print("[debug retinanet.py] detections[0].extra_fields: ", detections[0].extra_fields)
+
+        print("[debug retinanet.py] detector_losses: ", detector_losses)
+        # for i in range(len(features)):
+        #     print("[debug retinanet.py] features[{}].shape: ".format(i), features[i].shape)
+        print("[debug retinanet.py] len(features): ", len(features))
+        print("[debug retinanet.py] type(features): ", type(features))
+
         if self.training:
             losses = {}
             losses.update(detector_losses)
@@ -69,6 +91,8 @@ class RetinaNet(nn.Module):
                     for (image_detections, image_targets) in zip(
                         detections, targets):
                         merge_list = []
+                        print("[debug retinanet.py] image_detections: ", image_detections)
+                        print("[debug retinanet.py] image_targets: ", image_targets)
                         if not isinstance(image_detections, list):
                             merge_list.append(image_detections.copy_with_fields('labels'))
 
@@ -82,6 +106,8 @@ class RetinaNet(nn.Module):
                     x, result, mask_losses = self.mask(features, proposals, targets)
                 elif self.cfg.MODEL.SPARSE_MASK_ON:
                     x, result, mask_losses = self.mask(features, anchors, targets)
+                print("[debug retinanet.py] mask_losses: ", mask_losses)
+                # print("[debug retinanet.py] image_targets: ", image_targets)
 
                 losses.update(mask_losses)
             return losses

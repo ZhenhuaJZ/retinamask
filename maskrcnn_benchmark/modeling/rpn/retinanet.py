@@ -144,14 +144,20 @@ class RetinaNetModule(torch.nn.Module):
                 testing, it is an empty dict.
         """
         box_cls, box_regression = self.head(features)
+        # print("[debug retinanet.py] box_cls: ", box_cls)
+        # print("[debug retinanet.py] box_cls.shape: ", len(box_cls))
+        # print("[debug retinanet.py] box_regression: ", box_regression)
+        # print("[debug retinanet.py] box_regression.shape: ", len(box_regression))
         anchors = self.anchor_generator(images, features)
- 
+
         if self.training:
             return self._forward_train(anchors, box_cls, box_regression, targets)
         else:
             return self._forward_test(anchors, box_cls, box_regression)
 
     def _forward_train(self, anchors, box_cls, box_regression, targets):
+        # print("[debug retinanet.py] targets: ", targets)
+        # print("[debug retinanet.py] targets.shape: ", len(targets))
 
         loss_box_cls, loss_box_reg = self.loss_evaluator(
             anchors, box_cls, box_regression, targets

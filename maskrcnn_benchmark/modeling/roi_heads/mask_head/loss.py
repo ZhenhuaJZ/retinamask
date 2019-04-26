@@ -74,8 +74,9 @@ class MaskRCNNLossComputation(object):
             matched_targets = self.match_targets_to_proposals(
                 proposals_per_image, targets_per_image
             )
+            print("[debug mask_head.py] matched_targets: ", matched_targets)
             matched_idxs = matched_targets.get_field("matched_idxs")
-
+            print("[debug mask_head.py] matched_idxs: ", matched_idxs)
             labels_per_image = matched_targets.get_field("labels")
             labels_per_image = labels_per_image.to(dtype=torch.int64)
 
@@ -121,6 +122,10 @@ class MaskRCNNLossComputation(object):
 
         # torch.mean (in binary_cross_entropy_with_logits) doesn't
         # accept empty tensors, so handle it separately
+        mask_logits[positive_inds, labels_pos]
+        print("[debug mask_head.py] mask_logits[positive_inds, labels_pos]: ", mask_logits[positive_inds, labels_pos])
+        print("[debug mask_head.py] mask_targets: ", mask_targets)
+        exit()
         if mask_targets.numel() == 0:
             return mask_logits.sum() * 0
 
