@@ -50,7 +50,7 @@ class Checkpointer(object):
         self.tag_last_checkpoint(save_file)
 
     def load(self, f=None):
-        if self.has_checkpoint():
+        if self.has_checkpoint() and not f:
             # override argument with existing checkpoint
             f = self.get_checkpoint_file()
         if not f:

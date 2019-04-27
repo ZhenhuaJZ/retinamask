@@ -49,16 +49,18 @@ def main():
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    save_dir = ""
+    save_dir = "./sheep_model_w_pre-train/eval"
+    mkdir(save_dir)
     logger = setup_logger("maskrcnn_benchmark", save_dir, get_rank())
-    logger.info("Using {} GPUs".format(num_gpus))
-    logger.info(cfg)
+#    logger.info("Using {} GPUs".format(num_gpus))
+#    logger.info(cfg)
 
-    logger.info("Collecting env info (might take some time)")
-    logger.info("\n" + collect_env_info())
-
+#    logger.info("Collecting env info (might take some time)")
+#    logger.info("\n" + collect_env_info())
+    logger.info("\n############## Starting New Eval")
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
+    logger.info("Load weight path -- " + str(cfg.MODEL.WEIGHT))
 
     checkpointer = DetectronCheckpointer(cfg, model)
     _ = checkpointer.load(cfg.MODEL.WEIGHT)

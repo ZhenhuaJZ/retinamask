@@ -54,7 +54,10 @@ def prepare_for_coco_detection(predictions, dataset):
         scores = prediction.get_field("scores").tolist()
         labels = prediction.get_field("labels").tolist()
 
-        mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        if len(dataset.contiguous_category_id_to_json_id) == 1: 
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[1] for i in labels]
+        else:
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
 
         coco_results.extend(
             [
@@ -105,8 +108,10 @@ def prepare_for_coco_segmentation(predictions, dataset):
         for rle in rles:
             rle["counts"] = rle["counts"].decode("utf-8")
 
-        mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
-
+        if len(dataset.contiguous_category_id_to_json_id) == 1: 
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[1] for i in labels]
+        else:
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
         coco_results.extend(
             [
                 {
@@ -321,7 +326,12 @@ class COCOResults(object):
 
     def __repr__(self):
         # TODO make it pretty
-        return repr(self.results)
+        string = "\n"
+        for type in self.results.keys():
+            string = string +"###"+ type + " evaluation\n"
+            for ap in self.results[type].keys():
+               string = string + ap + ": " + str(self.results[type][ap]) + "\n"
+        return string
 
 
 def check_expected_results(results, expected_results, sigma_tol):

@@ -17,12 +17,12 @@ class DatasetCatalog(object):
             "coco/annotations/image_info_test2017.json",
         ),
         "coco_2017_train": (
-            "coco/train2017",
-            "coco/annotations/instances_train2017.json",
+            "/data/lecui/sheep_count_data/train_test_data/coco-style/train2017",
+            "/data/lecui/sheep_count_data/train_test_data/coco-style/annotations/instances_train2017.json",
         ),
         "coco_2017_val": (
-            "coco/val2017",
-            "coco/annotations/instances_val2017.json",
+            "/data/lecui/sheep_count_data/train_test_data/coco-style/val2017",
+            "/data/lecui/sheep_count_data/train_test_data/coco-style/annotations/instances_val2017.json",
         ),
         "coco_2014_train": (
             "coco/train2014",
