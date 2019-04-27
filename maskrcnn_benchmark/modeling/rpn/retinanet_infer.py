@@ -129,6 +129,7 @@ class RetinaNetPostProcessor(torch.nn.Module):
             boxlists (list[BoxList]): the post-processed anchors, after
                 applying box decoding and NMS
         """
+        # print("[debug retinanet_infer.py] forward")
         sampled_boxes = []
         num_levels = len(box_cls)
         anchors = list(zip(*anchors))
@@ -140,12 +141,14 @@ class RetinaNetPostProcessor(torch.nn.Module):
                     self.pre_nms_thresh
                 )
             )
-
+        # print("[debug retinanet_infer.py] per_class: ", per_class)
         boxlists = list(zip(*sampled_boxes))
         boxlists = [cat_boxlist(boxlist) for boxlist in boxlists]
+        # print("[debug retinanet_infer.py] boxlists: ", boxlists[0].extra_fields)
 
         boxlists = self.select_over_all_levels(boxlists)
-
+        # print("[debug retinanet_infer.py] boxlists: ", boxlists[0].extra_fields)
+        # exit()
         return boxlists
 
     def select_over_all_levels(self, boxlists):
@@ -154,6 +157,7 @@ class RetinaNetPostProcessor(torch.nn.Module):
         for i in range(num_images):
             scores = boxlists[i].get_field("scores")
             labels = boxlists[i].get_field("labels")
+            # print("[debug retinanet_infer.py] labels: ", labels)
             boxes = boxlists[i].bbox
             boxlist = boxlists[i]
             result = []

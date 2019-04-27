@@ -296,7 +296,8 @@ def compute_loss(p, targets):  # predictions, targets
 
 
 def build_targets(model, targets):
-    # targets = [image, class, x, y, w, h]
+    # targets = [batch, class, x, y, w, h]
+    # Retina target data structure is converted to yolo target data structure
     if type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel):
         model = model.module
     '''
@@ -315,9 +316,14 @@ def build_targets(model, targets):
     # print("[debug yolov3.utils.py] bbox: ", bbox)
     # print("[debug yolov3.utils.py] bbox.shape: ", bbox.shape)
     bbox = torch.cat((labels, targets.bbox), 1)
+    # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
+    # exit()
     # print("[debug yolov3.utils.py] bbox.dtype: ", bbox.type())
     # print("[debug yolov3.utils.py] torch.zeros((len(bbox), 1), dtype = bbox.dtype): ", torch.zeros((len(bbox), 1), dtype = bbox.dtype, device = bbox.device).type())
     targets = torch.cat((torch.zeros((len(bbox), 1), dtype = bbox.dtype, device = bbox.device), bbox), 1)
+    # targets = torch.cat(labels, bbox), 1)
+    # print("[debug yolov3.utils.py] bbox: ", bbox)
+
     # print("[debug yolov3.utils.py] targets: ", targets)
     # print("[debug yolov3.utils.py] targets.shape: ", targets.shape)
 
@@ -329,6 +335,7 @@ def build_targets(model, targets):
         ####### As well as grid label x y w h calculation
         # iou of targets-anchors
         t, a = targets, []
+        grid_size = torch.tensor([layer.nG ,layer.nGh], dtype = bbox.dtype, device = bbox.device)
         ''' Target's x and y is normalsed '''
         '''
         Target from retinanet is in original pixel format
@@ -336,8 +343,9 @@ def build_targets(model, targets):
         To match the anchor location together with image label location
         The retinanet label needed to divide by grids
         '''
-
-        gwh = targets[:, 4:6] / layer.nG
+        # print("[debug yolov3.utils.py] targets[:, 4:6]: ", targets[:, 4:6])
+        gwh = targets[:, 4:6] / grid_size
+        # print("[debug yolov3.utils.py] gwh: ", gwh)
         # print("[debug yolov3.utils.py] gwh: ", gwh)
         if nt:
             # compare iou of height and width, not x and y location
@@ -351,12 +359,14 @@ def build_targets(model, targets):
                 j = iou > 0.10
                 t, a, gwh = targets[j], a[j], gwh[j]
         # print("[debug yolov3.utils.py] t: ", t)
+        # print("[debug yolov3.utils.py] t: ", t)
         # exit()
         # Indices
         b, c = t[:, :2].long().t()  # target image, class
         # Gxy is multiplied by grid size
         '''Issue with assigning target'''
-        gxy = t[:, 2:4] / layer.nG
+        # DEBUG: Correct gxy
+        gxy = t[:, 2:4] / grid_size
         gi, gj = gxy.long().t()  # grid_i, grid_j
         indices.append((b, a, gj, gi))
 

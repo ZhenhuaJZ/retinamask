@@ -157,9 +157,9 @@ class YoloNet(nn.Module):
         Should nms then loss?
         '''
         with torch.no_grad():
-            detection = non_max_suppression(detection, conf_thres=0.1, nms_thres=0.5)
-            print(len(detection))
-            print(detection[0].shape)
+            detection = non_max_suppression(detection, conf_thres=0.5, nms_thres=0.8)
+            # print(len(detection[0]))
+            # print(detection[0].shape)
         # ''' Use retinanet nms'''
         # if self.training:
         #     detections = self.box_selector_train(anchors, box_cls, box_regression)
@@ -169,10 +169,14 @@ class YoloNet(nn.Module):
         #Convert yolo detections (xyhw) to retinanet format(xyxy + extra_fields(labels, scores))
         detections = []
         # for dect in detection:
-        dect = BoxList(detection[0][:,:4], (image_size[1], image_size[0]), "xywh").convert("xyxy")
+        dect = BoxList(detection[0][:100,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
+        # print(detection[0][:])
+        # exit()
+        # exit()
         # dect = dect.convert("xyxy")
         # TODO: Obtrain correct labels
-        dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ))
+        # labels =
+        dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
         detections.append(dect)
 
         #output = list(output)

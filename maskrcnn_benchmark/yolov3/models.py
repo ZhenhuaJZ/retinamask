@@ -124,7 +124,7 @@ class YOLOLayer(nn.Module):
             bs, nG = 1, self.nG  # batch size, grid size
         else:
             bs, nGh, nGw = p.shape[0], p.shape[-2], p.shape[-1]
-            print("[debug models.py] bs {}, nGh {}, nGw {}:".format(bs, nGh, nGw))
+            # print("[debug models.py] bs {}, nGh {}, nGw {}:".format(bs, nGh, nGw))
             if self.img_size != img_size:
                 create_grids(self, img_size, nGh, nGw, p.device)
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
@@ -248,26 +248,27 @@ def get_yolo_layers(model):
 # TODO: change to incoperate variate image size for anchor calculation
 def create_grids(self, img_size, nGh, nGw, device='cpu'):
     self.img_size = img_size
-    print("[debug model.py] img_size: ", img_size)
-    print("[debug model.py] nG: ", nGw)
+    # print("[debug model.py] img_size: ", img_size)
+    # print("[debug model.py] nG: ", nGw)
     self.stride = torch.tensor([img_size[0] / nGh, img_size[1] / nGw]).to(device)
-    print("[debug model.py] self.stride: ", self.stride)
+    # print("[debug model.py] self.stride: ", self.stride)
     # build xy offsets
     # DEBUG: double check for repeat error
     grid_x = torch.arange(nGw).repeat((nGh, 1)).view((1, 1, nGh, nGw)).float()
-    print("[debug model.py] grid_x: ", grid_x.shape)
+    # print("[debug model.py] grid_x: ", grid_x.shape)
     grid_y = grid_x#.permute(0, 1, 3, 2)
-    print("[debug model.py] grid_y: ", grid_y.shape)
+    # print("[debug model.py] grid_y: ", grid_y.shape)
     self.grid_xy = torch.stack((grid_x, grid_y), 4).to(device)
-    print("[debug model.py] self.grid_xy: ", self.grid_xy.shape)
+    # print("[debug model.py] self.grid_xy: ", self.grid_xy.shape)
 
     # build wh gains
-    print("[debug model.py] self.anchors: ", self.anchors)
+    # print("[debug model.py] self.anchors: ", self.anchors)
     self.anchor_vec = self.anchors.to(device) / self.stride
-    print("[debug model.py] self.anchor_vec: ", self.anchor_vec)
+    # print("[debug model.py] self.anchor_vec: ", self.anchor_vec)
     self.anchor_wh = self.anchor_vec.view(1, self.nA, 1, 1, 2).to(device)
-    print("[debug model.py] self.anchor_wh.shape: ", self.anchor_wh.shape)
+    # print("[debug model.py] self.anchor_wh.shape: ", self.anchor_wh.shape)
     self.nG = torch.FloatTensor([nGw]).to(device)
+    self.nGh = torch.FloatTensor([nGh]).to(device)
 
 def load_darknet_weights(self, weights, cutoff=-1):
     # Parses and loads the weights stored in 'weights'
