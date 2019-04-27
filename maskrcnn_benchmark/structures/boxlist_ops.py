@@ -111,6 +111,8 @@ def cat_boxlist(bboxes):
     assert all(isinstance(bbox, BoxList) for bbox in bboxes)
 
     size = bboxes[0].size
+    # print("[debug boxlist_ops.py] size: ", size)
+    # [print("[debug boxlist_ops.py] bbox.size: ", bbox.size) for bbox in bboxes]
     assert all(bbox.size == size for bbox in bboxes)
 
     mode = bboxes[0].mode
@@ -122,6 +124,7 @@ def cat_boxlist(bboxes):
     cat_boxes = BoxList(_cat([bbox.bbox for bbox in bboxes], dim=0), size, mode)
 
     for field in fields:
+        # [print(bbox.get_field(field)) for bbox in bboxes]
         data = _cat([bbox.get_field(field) for bbox in bboxes], dim=0)
         cat_boxes.add_field(field, data)
 

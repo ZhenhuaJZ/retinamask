@@ -334,6 +334,7 @@ class COCOResults(object):
         return string
 
 
+
 def check_expected_results(results, expected_results, sigma_tol):
     if not expected_results:
         return

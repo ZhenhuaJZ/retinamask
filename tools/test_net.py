@@ -49,8 +49,7 @@ def main():
     cfg.merge_from_list(args.opts)
     cfg.freeze()
 
-    save_dir = "./sheep_model_w_pre-train/eval"
-    mkdir(save_dir)
+    save_dir = "./eval"
     logger = setup_logger("maskrcnn_benchmark", save_dir, get_rank())
 #    logger.info("Using {} GPUs".format(num_gpus))
 #    logger.info(cfg)

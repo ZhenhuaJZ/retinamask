@@ -144,14 +144,19 @@ class RetinaNetModule(torch.nn.Module):
                 testing, it is an empty dict.
         """
         box_cls, box_regression = self.head(features)
+        # print("[debug retinanet.py] box_cls: ", box_cls)
+        # print("[debug retinanet.py] box_cls.shape: ", len(box_cls))
+        # print("[debug retinanet.py] box_regression: ", box_regression)
+        # print("[debug retinanet.py] box_regression.shape: ", len(box_regression))
         anchors = self.anchor_generator(images, features)
- 
+
         if self.training:
             return self._forward_train(anchors, box_cls, box_regression, targets)
         else:
             return self._forward_test(anchors, box_cls, box_regression)
 
     def _forward_train(self, anchors, box_cls, box_regression, targets):
+
 
         loss_box_cls, loss_box_reg = self.loss_evaluator(
             anchors, box_cls, box_regression, targets
@@ -163,9 +168,15 @@ class RetinaNetModule(torch.nn.Module):
         detections = None
         if self.cfg.MODEL.MASK_ON or self.cfg.MODEL.SPARSE_MASK_ON:
             with torch.no_grad():
+                # print("[debug retinanet.py] anchors: ", anchors[0][0].extra_fields)
+                # print("[debug retinanet.py] box_cls: ", box_cls[0].shape)
+                # print("[debug retinanet.py] box_regression: ", box_regression[0].shape)
+                # exit()
+                # print("[debug retinanet.py] targets.shape: ", len(targets))
                 detections = self.box_selector_train(
                     anchors, box_cls, box_regression
                 )
+                # print("[debug retinanet.py] detections: ", detections[0].extra_fields)
 
         return (anchors, detections), losses
 
