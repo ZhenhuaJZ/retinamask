@@ -8,7 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from utils import torch_utils
+from maskrcnn_benchmark.yolov3.utils import torch_utils
 
 matplotlib.rc('font', **{'size': 12})
 
@@ -249,7 +249,9 @@ def compute_loss(p, targets):  # predictions, targets
     MSE = nn.MSELoss()
     CE = nn.CrossEntropyLoss()
     BCE = nn.BCEWithLogitsLoss()
-
+    print("[debug yolov3.utils.py] txy: ", txy)
+    print("[debug yolov3.utils.py] type(txy): ", type(txy))
+    print("[debug yolov3.utils.py] txy: ", p)
     # Compute losses
     # gp = [x.numel() for x in tconf]  # grid points
     for i, pi0 in enumerate(p):  # layer i predictions, i
@@ -260,27 +262,27 @@ def compute_loss(p, targets):  # predictions, targets
         # Compute losses
         k = 1  # nt / bs
         if nt:
-            # print("[debug yolov3.utils.py] b: ", b)
-            # print("[debug yolov3.utils.py] b.shape: ", b.shape)
-            # print("[debug yolov3.utils.py] a: ", a)
-            # print("[debug yolov3.utils.py] a.shape: ", a.shape)
-            # print("[debug yolov3.utils.py] gj: ", gj)
-            # print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
-            # print("[debug yolov3.utils.py] gi: ", gi)
-            # print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
-            # print("[debug yolov3.utils.py] pi0: ", pi0)
-            # print("[debug yolov3.utils.py] pi0.shape: ", pi0.shape)
+            print("[debug yolov3.utils.py] b: ", b)
+            print("[debug yolov3.utils.py] b.shape: ", b.shape)
+            print("[debug yolov3.utils.py] a: ", a)
+            print("[debug yolov3.utils.py] a.shape: ", a.shape)
+            print("[debug yolov3.utils.py] gj: ", gj)
+            print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
+            print("[debug yolov3.utils.py] gi: ", gi)
+            print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
+            #print("[debug yolov3.utils.py] pi0: ", pi0)
+            print("[debug yolov3.utils.py] pi0.shape: ", pi0.shape)
 
             pi = pi0[b, a, gj, gi]  # predictions closest to anchors
             tconf[b, a, gj, gi] = 1  # conf
-            # print("[debug yolov3.utils.py] pi: ", pi)
-            # print("[debug yolov3.utils.py] pi.shape: ", pi.shape)
-            # print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
-            # print("[debug yolov3.utils.py] pi[..., 0:2].shape: ", pi[..., 0:2].shape)
-            # print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]): ", torch.sigmoid(pi[..., 0:2]))
-            # print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]).shape: ", torch.sigmoid(pi[..., 0:2]).shape)
-            # print("[debug yolov3.utils.py] txy[i]: ", txy[i])
-            # print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
+            #print("[debug yolov3.utils.py] pi: ", pi)
+            #print("[debug yolov3.utils.py] pi.shape: ", pi.shape)
+            print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
+            print("[debug yolov3.utils.py] pi[..., 0:2].shape: ", pi[..., 0:2].shape)
+            print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]): ", torch.sigmoid(pi[..., 0:2]))
+            print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]).shape: ", torch.sigmoid(pi[..., 0:2]).shape)
+            #print("[debug yolov3.utils.py] txy[i]: ", txy[i])
+            #print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
             lxy += (k * 8) * MSE(torch.sigmoid(pi[..., 0:2]), txy[i])  # xy loss
 
             lwh += (k * 1) * MSE(pi[..., 2:4], twh[i])  # wh yolo loss
@@ -335,7 +337,8 @@ def build_targets(model, targets):
         ####### As well as grid label x y w h calculation
         # iou of targets-anchors
         t, a = targets, []
-        grid_size = torch.tensor([layer.nG ,layer.nGh], dtype = bbox.dtype, device = bbox.device)
+        #grid_size = torch.tensor([[layer.nG[0] ,layer.nGh[0]]],device = bbox.device) # dtype = bbox.dtype, device = bbox.device)
+        #grid_size = layer.nG
         ''' Target's x and y is normalsed '''
         '''
         Target from retinanet is in original pixel format
@@ -344,9 +347,10 @@ def build_targets(model, targets):
         The retinanet label needed to divide by grids
         '''
         # print("[debug yolov3.utils.py] targets[:, 4:6]: ", targets[:, 4:6])
-        gwh = targets[:, 4:6] / grid_size
-        # print("[debug yolov3.utils.py] gwh: ", gwh)
-        # print("[debug yolov3.utils.py] gwh: ", gwh)
+        gw = (targets[:, 4] / layer.nG).view(-1,1)
+        gh = (targets[:, 5] / layer.nGh).view(-1,1)
+        gwh = torch.cat([gw,gh],1).contiguous()#targets[:, 4:6] / grid_size
+        print("[debug yolov3.utils.py] gwh: ", gwh)
         if nt:
             # compare iou of height and width, not x and y location
             iou = [wh_iou(x, gwh) for x in layer.anchor_vec]
@@ -366,12 +370,16 @@ def build_targets(model, targets):
         # Gxy is multiplied by grid size
         '''Issue with assigning target'''
         # DEBUG: Correct gxy
-        gxy = t[:, 2:4] / grid_size
+        gx = (targets[:, 2] / layer.nG).view(-1,1)
+        gy = (targets[:, 3] / layer.nGh).view(-1,1)
+        gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
+        print("[debug] gxy: ", gxy)
+        #gxy = torch.div(t[:, 2:4], grid_size)#t[:, 2:4] / grid_size
         gi, gj = gxy.long().t()  # grid_i, grid_j
         indices.append((b, a, gj, gi))
 
         # XY coordinates
-        txy.append(gxy - gxy.floor())
+        txy.append(((gxy - gxy.floor())+0.00001).contiguous())
 
         # Width and height
         twh.append(torch.log(gwh / layer.anchor_vec[a]))  # wh yolo method

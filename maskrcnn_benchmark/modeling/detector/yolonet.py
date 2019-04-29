@@ -117,7 +117,7 @@ class YoloNet(nn.Module):
         loss = {"sum_loss": loss}
         # print("[debug yolonet.py] loss.shape: ", loss)
         # print("[debug yolonet.py] loss.shape: ", loss.shape)
-        print("[debug yolonet.py] loss_items: ", loss_items)
+        #print("[debug yolonet.py] loss_items: ", loss_items)
         # print("[debug yolonet.py] loss_items.shape: ", loss_items.shape)
         """ The following section requires (anchors [boxlist], features, detector_losses)"""
         """
@@ -157,9 +157,10 @@ class YoloNet(nn.Module):
         Should nms then loss?
         '''
         with torch.no_grad():
-            detection = non_max_suppression(detection, conf_thres=0.5, nms_thres=0.8)
-            # print(len(detection[0]))
-            # print(detection[0].shape)
+            detection = non_max_suppression(detection, conf_thres=0.1, nms_thres=0.5)
+            print("type: ", type(detection[0]))
+            #print(len(detection[0]))
+            #print(detection[0].shape)
         # ''' Use retinanet nms'''
         # if self.training:
         #     detections = self.box_selector_train(anchors, box_cls, box_regression)
@@ -169,7 +170,10 @@ class YoloNet(nn.Module):
         #Convert yolo detections (xyhw) to retinanet format(xyxy + extra_fields(labels, scores))
         detections = []
         # for dect in detection:
-        dect = BoxList(detection[0][:100,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
+        if detection[0] is None:
+            dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
+        else:
+            dect = BoxList(detection[0][:4,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
         # print(detection[0][:])
         # exit()
         # exit()

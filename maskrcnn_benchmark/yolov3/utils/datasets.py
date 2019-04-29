@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from utils.utils import xyxy2xywh
+from maskrcnn_benchmark.yolov3.utils.utils import xyxy2xywh
 
 
 class LoadImages:  # for inference
