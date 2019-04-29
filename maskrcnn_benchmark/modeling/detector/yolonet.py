@@ -158,7 +158,7 @@ class YoloNet(nn.Module):
         '''
         with torch.no_grad():
             detection = non_max_suppression(detection, conf_thres=0.1, nms_thres=0.5)
-            print("type: ", type(detection[0]))
+            # print("type: ", type(detection[0]))
             #print(len(detection[0]))
             #print(detection[0].shape)
         # ''' Use retinanet nms'''

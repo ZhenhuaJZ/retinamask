@@ -231,6 +231,8 @@ class Darknet(nn.Module):
             # print("[debug models.py Darknet] layer_outputs: ", layer_outputs)
             # [print(layer.shape) for layer in layer_outputs]
             io, p, feat_map = list(zip(*output))  # inference output, training output
+            # [print(layer.shape) for layer in p]
+
             return torch.cat(io, 1), p, feat_map
             # return output
         elif ONNX_EXPORT:
@@ -245,11 +247,8 @@ def get_yolo_layers(model):
     a = [module_def['type'] == 'yolo' for module_def in model.module_defs]
     return [i for i, x in enumerate(a) if x]  # [82, 94, 106] for yolov3
 
-# TODO: change to incoperate variate image size for anchor calculation
 def create_grids(self, img_size, nGh, nGw, device='cpu'):
     self.img_size = img_size
-    # print("[debug model.py] img_size: ", img_size)
-    # print("[debug model.py] nG: ", nGw)
     self.stride = torch.tensor([img_size[0] / nGh, img_size[1] / nGw]).to(device)
     # print("[debug model.py] self.stride: ", self.stride)
     # build xy offsets

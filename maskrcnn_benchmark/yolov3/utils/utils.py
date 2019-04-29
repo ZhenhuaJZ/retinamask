@@ -249,9 +249,9 @@ def compute_loss(p, targets):  # predictions, targets
     MSE = nn.MSELoss()
     CE = nn.CrossEntropyLoss()
     BCE = nn.BCEWithLogitsLoss()
-    print("[debug yolov3.utils.py] txy: ", txy)
-    print("[debug yolov3.utils.py] type(txy): ", type(txy))
-    print("[debug yolov3.utils.py] txy: ", p)
+    #print("[debug yolov3.utils.py] txy: ", txy)
+    #print("[debug yolov3.utils.py] type(txy): ", type(txy))
+    #print("[debug yolov3.utils.py] txy: ", p)
     # Compute losses
     # gp = [x.numel() for x in tconf]  # grid points
     for i, pi0 in enumerate(p):  # layer i predictions, i
@@ -262,25 +262,25 @@ def compute_loss(p, targets):  # predictions, targets
         # Compute losses
         k = 1  # nt / bs
         if nt:
-            print("[debug yolov3.utils.py] b: ", b)
-            print("[debug yolov3.utils.py] b.shape: ", b.shape)
-            print("[debug yolov3.utils.py] a: ", a)
-            print("[debug yolov3.utils.py] a.shape: ", a.shape)
-            print("[debug yolov3.utils.py] gj: ", gj)
-            print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
-            print("[debug yolov3.utils.py] gi: ", gi)
-            print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
+            # print("[debug yolov3.utils.py] b: ", b)
+            #print("[debug yolov3.utils.py] b.shape: ", b.shape)
+            # print("[debug yolov3.utils.py] a: ", a)
+            #print("[debug yolov3.utils.py] a.shape: ", a.shape)
+            # print("[debug yolov3.utils.py] gj: ", gj)
+            #print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
+            # print("[debug yolov3.utils.py] gi: ", gi)
+            #print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
             #print("[debug yolov3.utils.py] pi0: ", pi0)
-            print("[debug yolov3.utils.py] pi0.shape: ", pi0.shape)
+            # print("[debug yolov3.utils.py] pi0.shape: ", pi0.shape)
 
             pi = pi0[b, a, gj, gi]  # predictions closest to anchors
             tconf[b, a, gj, gi] = 1  # conf
             #print("[debug yolov3.utils.py] pi: ", pi)
             #print("[debug yolov3.utils.py] pi.shape: ", pi.shape)
-            print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
-            print("[debug yolov3.utils.py] pi[..., 0:2].shape: ", pi[..., 0:2].shape)
-            print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]): ", torch.sigmoid(pi[..., 0:2]))
-            print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]).shape: ", torch.sigmoid(pi[..., 0:2]).shape)
+            #print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
+            #print("[debug yolov3.utils.py] pi[..., 0:2].shape: ", pi[..., 0:2].shape)
+            #print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]): ", torch.sigmoid(pi[..., 0:2]))
+            #print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]).shape: ", torch.sigmoid(pi[..., 0:2]).shape)
             #print("[debug yolov3.utils.py] txy[i]: ", txy[i])
             #print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
             lxy += (k * 8) * MSE(torch.sigmoid(pi[..., 0:2]), txy[i])  # xy loss
@@ -347,10 +347,14 @@ def build_targets(model, targets):
         The retinanet label needed to divide by grids
         '''
         # print("[debug yolov3.utils.py] targets[:, 4:6]: ", targets[:, 4:6])
-        gw = (targets[:, 4] / layer.nG).view(-1,1)
-        gh = (targets[:, 5] / layer.nGh).view(-1,1)
+        # gw = (targets[:, 4] / layer.nG).view(-1,1)
+        # gh = (targets[:, 5] / layer.nGh).view(-1,1)
+        gw = (targets[:, 4] / layer.stride[1]).view(-1,1)
+        gh = (targets[:, 5] / layer.stride[0]).view(-1,1)
         gwh = torch.cat([gw,gh],1).contiguous()#targets[:, 4:6] / grid_size
-        print("[debug yolov3.utils.py] gwh: ", gwh)
+        # print("[debug] gwh: ", gwh)
+        # print("[debug] layer.anchor_vec: ", layer.anchor_vec)
+        # print("[debug yolov3.utils.py] gwh: ", gwh)
         if nt:
             # compare iou of height and width, not x and y location
             iou = [wh_iou(x, gwh) for x in layer.anchor_vec]
@@ -362,6 +366,7 @@ def build_targets(model, targets):
             if reject:
                 j = iou > 0.10
                 t, a, gwh = targets[j], a[j], gwh[j]
+
         # print("[debug yolov3.utils.py] t: ", t)
         # print("[debug yolov3.utils.py] t: ", t)
         # exit()
@@ -370,16 +375,32 @@ def build_targets(model, targets):
         # Gxy is multiplied by grid size
         '''Issue with assigning target'''
         # DEBUG: Correct gxy
-        gx = (targets[:, 2] / layer.nG).view(-1,1)
-        gy = (targets[:, 3] / layer.nGh).view(-1,1)
+        # gx = (t[:, 2] / layer.nGh).view(-1,1)
+        # gy = (t[:, 3] / layer.nG).view(-1,1)
+        # TODO: More efficient division operation
+        # gx == width
+        gx = (t[:, 2] / layer.stride[1]).view(-1,1)
+        # gy == height
+        gy = (t[:, 3] / layer.stride[0]).view(-1,1)
         gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
-        print("[debug] gxy: ", gxy)
+        # print("[debug] self.img_size: ", layer.img_size)
+        # print("[debug] layer.stride: ", layer.stride)
+        # print("[debug] t[:, 2].max(): ", t[:, 2].max())
+        # print("[debug] t[:, 2]: ", t[:, 2])
+        # print("[debug] t[:, 3].max(): ", t[:, 3].max())
+        # print("[debug] layer.nGh,w: ", layer.nGh ," ", layer.nG)
+        # print("[debug] layer.nGh: ", )
+        #print("[debug] targets[:, 2:3]: ", targets[:, 2:4])
+        #print("[debug] gxy: ", gxy)
+        #print("[debug] gxy.long(): ",  gxy.long())
+        # print("[debug] gxy.long().t(): ",  gxy.long().t())
+        # exit()
         #gxy = torch.div(t[:, 2:4], grid_size)#t[:, 2:4] / grid_size
         gi, gj = gxy.long().t()  # grid_i, grid_j
         indices.append((b, a, gj, gi))
 
         # XY coordinates
-        txy.append(((gxy - gxy.floor())+0.00001).contiguous())
+        txy.append(gxy - gxy.floor())
 
         # Width and height
         twh.append(torch.log(gwh / layer.anchor_vec[a]))  # wh yolo method
@@ -389,6 +410,7 @@ def build_targets(model, targets):
         tcls.append(c)
         if c.shape[0]:
             assert c.max() <= layer.nC, 'Target classes exceed model classes'
+    # exit()
     return txy, twh, tcls, indices
 
 
