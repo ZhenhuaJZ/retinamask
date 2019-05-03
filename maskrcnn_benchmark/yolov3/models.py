@@ -176,10 +176,10 @@ class YOLOLayer(nn.Module):
             # io[..., 2:4] = ((torch.sigmoid(io[..., 2:4]) * 2) ** 3) * self.anchor_wh  # wh power method
             io[..., 4:] = torch.sigmoid(io[..., 4:])  # p_conf, p_cls
             # io[..., 5:] = F.softmax(io[..., 5:], dim=4)  # p_cls
-            io[..., :4] *= self.stride
+            io[..., :4] *= self.stride[0]
 
             # reshape from [1, 3, 13, 13, 85] to [1, 507, 85]
-            return io.view(bs, -1, 5 + self.nC), p
+            return io.view(bs, -1, 5 + self.nC), p, feat_map
 
 
 class Darknet(nn.Module):
@@ -239,8 +239,12 @@ class Darknet(nn.Module):
             output = torch.cat(output, 1)  # cat 3 layers 85 x (507, 2028, 8112) to 85 x 10647
             return output[5:85].t(), output[:4].t()  # ONNX scores, boxes
         else:
-            io, p = list(zip(*output))  # inference output, training output
-            return torch.cat(io, 1), p
+            # print("[debug models.py Darknet] layer_outputs: ", layer_outputs)
+            # [print(layer.shape) for layer in layer_outputs]
+            io, p, feat_map = list(zip(*output))  # inference output, training output
+            # [print(layer.shape) for layer in p]
+
+            return torch.cat(io, 1), p, feat_map
 
 
 def get_yolo_layers(model):

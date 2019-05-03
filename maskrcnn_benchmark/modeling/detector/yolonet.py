@@ -108,13 +108,14 @@ class YoloNet(nn.Module):
 
         # TODO: Fix target list
         '''Target is a boxcoder class and needed to be extracted for yolo processing'''
-        target_list = build_targets(self.yolonet, targets)
+        if self.training:
+            target_list = build_targets(self.yolonet, targets)
         # print("[debug yolonet.py] target_list.shape: ", target_list)
         # exit()
 
         # Compute loss
-        loss, loss_items = compute_loss(output, target_list)
-        loss = {"sum_loss": loss}
+            loss, loss_items = compute_loss(output, target_list)
+            loss = {"sum_loss": loss}
         # print("[debug yolonet.py] loss.shape: ", loss)
         # print("[debug yolonet.py] loss.shape: ", loss.shape)
         #print("[debug yolonet.py] loss_items: ", loss_items)
@@ -170,17 +171,21 @@ class YoloNet(nn.Module):
         #Convert yolo detections (xyhw) to retinanet format(xyxy + extra_fields(labels, scores))
         detections = []
         # for dect in detection:
+        # todo add objectiveness field
         if detection[0] is None:
             dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
+            dect.add_field("labels", torch.tensor([0], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
+            dect.add_field("objectness", torch.tensor([0], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
         else:
             dect = BoxList(detection[0][:4,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
+            dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
+            dect.add_field("objectness", detection[0][:4, 4])
         # print(detection[0][:])
         # exit()
         # exit()
         # dect = dect.convert("xyxy")
         # TODO: Obtrain correct labels
         # labels =
-        dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
         detections.append(dect)
 
         #output = list(output)
