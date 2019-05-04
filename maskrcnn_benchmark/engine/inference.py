@@ -54,7 +54,7 @@ def prepare_for_coco_detection(predictions, dataset):
         scores = prediction.get_field("scores").tolist()
         labels = prediction.get_field("labels").tolist()
 
-        if len(dataset.contiguous_category_id_to_json_id) == 1: 
+        if len(dataset.contiguous_category_id_to_json_id) == 1:
             mapped_labels = [dataset.contiguous_category_id_to_json_id[1] for i in labels]
         else:
             mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
@@ -108,7 +108,7 @@ def prepare_for_coco_segmentation(predictions, dataset):
         for rle in rles:
             rle["counts"] = rle["counts"].decode("utf-8")
 
-        if len(dataset.contiguous_category_id_to_json_id) == 1: 
+        if len(dataset.contiguous_category_id_to_json_id) == 1:
             mapped_labels = [dataset.contiguous_category_id_to_json_id[1] for i in labels]
         else:
             mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]

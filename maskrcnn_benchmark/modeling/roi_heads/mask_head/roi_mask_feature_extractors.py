@@ -37,6 +37,8 @@ class MaskRCNNFPNFeatureExtractor(nn.Module):
 
         next_feature = input_size
         self.blocks = []
+        # print(cfg.MODEL.ROI_MASK_HEAD.CANONICAL_LEVEL)
+        # exit()
         for layer_idx, layer_features in enumerate(layers, 1):
             layer_name = "mask_fcn{}".format(layer_idx)
             module = Conv2d(next_feature, layer_features, 3, stride=1, padding=1)

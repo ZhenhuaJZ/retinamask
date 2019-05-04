@@ -96,7 +96,6 @@ class RetinaNetPostProcessor(torch.nn.Module):
             per_box_cls = per_box_cls[per_candidate_inds]
             per_box_cls, top_k_indices = \
                     per_box_cls.topk(per_pre_nms_top_n, sorted=False)
-
             per_candidate_nonzeros = \
                     per_candidate_inds.nonzero()[top_k_indices, :]
 
@@ -144,7 +143,7 @@ class RetinaNetPostProcessor(torch.nn.Module):
         # print("[debug retinanet_infer.py] per_class: ", per_class)
         boxlists = list(zip(*sampled_boxes))
         boxlists = [cat_boxlist(boxlist) for boxlist in boxlists]
-        # print("[debug retinanet_infer.py] boxlists: ", boxlists[0].extra_fields)
+        # print("[debug retinanet_infer.py] boxlists: ", boxlists)
 
         boxlists = self.select_over_all_levels(boxlists)
         # print("[debug retinanet_infer.py] boxlists: ", boxlists[0].extra_fields)

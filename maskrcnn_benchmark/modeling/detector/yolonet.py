@@ -110,8 +110,6 @@ class YoloNet(nn.Module):
         '''Target is a boxcoder class and needed to be extracted for yolo processing'''
         if self.training:
             target_list = build_targets(self.yolonet, targets)
-        # print("[debug yolonet.py] target_list.shape: ", target_list)
-        # exit()
 
         # Compute loss
             loss, loss_items = compute_loss(output, target_list)
@@ -160,7 +158,6 @@ class YoloNet(nn.Module):
         with torch.no_grad():
             detection = non_max_suppression(detection, conf_thres=0.1, nms_thres=0.5)
             # print("type: ", type(detection[0]))
-            #print(len(detection[0]))
             #print(detection[0].shape)
         # ''' Use retinanet nms'''
         # if self.training:
@@ -174,12 +171,17 @@ class YoloNet(nn.Module):
         # todo add objectiveness field
         if detection[0] is None:
             dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
-            dect.add_field("labels", torch.tensor([0], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
-            dect.add_field("objectness", torch.tensor([0], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
-        else:
-            dect = BoxList(detection[0][:4,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
             dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
-            dect.add_field("objectness", detection[0][:4, 4])
+            dect.add_field("objectness", torch.tensor([0], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
+            dect.add_field("scores", torch.tensor([0.01], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
+        else:
+            # print(len(detection[0]))
+            topk = 100
+            dect = BoxList(detection[0][:topk,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
+            # dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
+            dect.add_field("labels", detection[0][:topk, 6].to(torch.int64))
+            dect.add_field("objectness", detection[0][:topk, 4])
+            dect.add_field("scores", detection[0][:topk, 5])
         # print(detection[0][:])
         # exit()
         # exit()
@@ -191,11 +193,17 @@ class YoloNet(nn.Module):
         #output = list(output)
         features = []
         # print("[debug yolonet.py] output: ", type(output))
-        for i, o in enumerate(output):
+        for i in range(len(output)):
+            o = output[2-i]
             feat_map_size = o.shape[2:4]
             new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
             features.append(new_feat)
-            # print(output[i].shape)
+            # print(o.shape)
+        # for i, o in enumerate(output):
+        #     feat_map_size = o.shape[2:4]
+        #     new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
+        #     features.append(new_feat)
+        #     print(output[i].shape)
         #features = output
 
         """Mask network"""

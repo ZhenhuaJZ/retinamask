@@ -61,7 +61,7 @@ class RetinaNet(nn.Module):
             rpn_features = features[1:]
         '''Retinanet module in rpn.retinanet'''
         (anchors, detections), detector_losses = self.rpn(images, rpn_features, targets)
-        # print("[debug retinanet.py] detections: ", type(detections))
+        # print("[debug retinanet.py] detections: ", detections)
         # print("[debug retinanet.py] detector_losses: ", detector_losses)
         # print("[debug retinanet.py] len(anchors): ", len(anchors))
         # print("[debug retinanet.py] anchors[0]: ", anchors[0])
@@ -76,8 +76,10 @@ class RetinaNet(nn.Module):
         # print("[debug retinanet.py] detections[0].extra_fields: ", detections[0].extra_fields)
         #
         # print("[debug retinanet.py] detector_losses: ", detector_losses)
-        # # for i in range(len(features)):
-        # #     print("[debug retinanet.py] features[{}].shape: ".format(i), features[i].shape)
+        features = features[3:]
+        # for i in range(len(features)):
+        #     print(i)
+        #     print("[debug retinanet.py] features[{}].shape: ".format(i), features[i].shape)
         # print("[debug retinanet.py] len(features): ", len(features))
         # print("[debug retinanet.py] type(features): ", type(features))
 
@@ -100,7 +102,6 @@ class RetinaNet(nn.Module):
 
                         if not isinstance(image_targets, list):
                             merge_list.append(image_targets.copy_with_fields('labels'))
-
                         if len(merge_list) == 1:
                             proposals.append(merge_list[0])
                         else:

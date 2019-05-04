@@ -61,11 +61,12 @@ class ROIMaskHead(torch.nn.Module):
         if self.training:
             # during training, only focus on positive boxes
             all_proposals = proposals
+            # print("[debug mask_head.py] proposals: ", proposals)
             '''
             proposal: list[boxlist],  positive_inds: list[tensor]
             '''
             proposals, positive_inds = keep_only_positive_boxes(proposals)
-        # print("[debug mask_head.py] type(proposals): ", type(proposals))
+            # print("[debug mask_head.py] proposals aft positiv: ", proposals)
         # print("[debug mask_head.py] len(proposals): ", len(proposals))
         # print("[debug mask_head.py] proposals: ", proposals)
         # print("[debug mask_head.py] proposals[0]: ", proposals[0])
@@ -83,7 +84,7 @@ class ROIMaskHead(torch.nn.Module):
         # print("[debug mask_head.py] x.shape: ",x.shape)
         mask_logits = self.predictor(x)
         # print("[debug mask_head.py] type(mask_logits): ", type(mask_logits))
-        # print("[debug mask_head.py] len(mask_logits): ", len(mask_logits))
+
         # print("[debug mask_head.py] mask_logits.shape: ",mask_logits.shape)
         if not self.training:
             result = self.post_processor(mask_logits, proposals)
