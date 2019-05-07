@@ -251,14 +251,12 @@ def compute_loss(p, targets):  # predictions, targets
     BCE = nn.BCEWithLogitsLoss()
     #print("[debug yolov3.utils.py] txy: ", txy)
     #print("[debug yolov3.utils.py] type(txy): ", type(txy))
-    #print("[debug yolov3.utils.py] txy: ", p)
     # Compute losses
     # gp = [x.numel() for x in tconf]  # grid points
     for i, pi0 in enumerate(p):  # layer i predictions, i
         b, a, gj, gi = indices[i]  # image, anchor, gridx, gridy
         tconf = torch.zeros_like(pi0[..., 0])  # conf
         nt = len(b)  # number of targets
-
         # Compute losses
         k = 1  # nt / bs
         if nt:
@@ -269,19 +267,19 @@ def compute_loss(p, targets):  # predictions, targets
             # print("[debug yolov3.utils.py] gj: ", gj)
             #print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
             # print("[debug yolov3.utils.py] gi: ", gi)
-            #print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
-            #print("[debug yolov3.utils.py] pi0: ", pi0)
+            # print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
+            # print("[debug yolov3.utils.py] pi0: ", pi0)
             # print("[debug yolov3.utils.py] pi0.shape: ", pi0.shape)
-
+            # print("[debug yolov3.utils.py] [b, a, gj, gi] [{}, {}, {}, {}]: ".format(b, a, gj, gi))
+            # print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
             pi = pi0[b, a, gj, gi]  # predictions closest to anchors
             tconf[b, a, gj, gi] = 1  # conf
-            #print("[debug yolov3.utils.py] pi: ", pi)
+            # print("[debug yolov3.utils.py] pi: ", pi)
             #print("[debug yolov3.utils.py] pi.shape: ", pi.shape)
-            #print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
+            # print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
             #print("[debug yolov3.utils.py] pi[..., 0:2].shape: ", pi[..., 0:2].shape)
-            #print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]): ", torch.sigmoid(pi[..., 0:2]))
             #print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]).shape: ", torch.sigmoid(pi[..., 0:2]).shape)
-            #print("[debug yolov3.utils.py] txy[i]: ", txy[i])
+            # print("[debug yolov3.utils.py] txy[i]: ", txy[i])
             #print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
             lxy += (k * 8) * MSE(torch.sigmoid(pi[..., 0:2]), txy[i])  # xy loss
 
@@ -308,7 +306,6 @@ def build_targets(model, targets):
     '''
     #### modifications
     targets = targets[0].convert("xywh")
-    # print("[debug yolov3.utils.py] targets: ", targets)
     # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
     # print("[debug yolov3.utils.py] targets.extra_fields[labels]): ", targets.extra_fields["labels"])
     labels = targets.extra_fields["labels"].type(targets.bbox.type()).unsqueeze(-1)
@@ -349,9 +346,10 @@ def build_targets(model, targets):
         # print("[debug yolov3.utils.py] targets[:, 4:6]: ", targets[:, 4:6])
         # gw = (targets[:, 4] / layer.nG).view(-1,1)
         # gh = (targets[:, 5] / layer.nGh).view(-1,1)
-        gw = (targets[:, 4] / layer.stride[1]).view(-1,1)
-        gh = (targets[:, 5] / layer.stride[0]).view(-1,1)
-        gwh = torch.cat([gw,gh],1).contiguous()#targets[:, 4:6] / grid_size
+        gw = (targets[:, 4] / layer.stride[0]).view(-1,1)
+        gh = (targets[:, 5] / layer.stride[1]).view(-1,1)
+        gwh = torch.cat([gw,gh],1).contiguous()
+        #targets[:, 4:6] / grid_size
         # print("[debug] gwh: ", gwh)
         # print("[debug] layer.anchor_vec: ", layer.anchor_vec)
         # print("[debug yolov3.utils.py] gwh: ", gwh)
@@ -368,7 +366,6 @@ def build_targets(model, targets):
                 t, a, gwh = targets[j], a[j], gwh[j]
 
         # print("[debug yolov3.utils.py] t: ", t)
-        # print("[debug yolov3.utils.py] t: ", t)
         # exit()
         # Indices
         b, c = t[:, :2].long().t()  # target image, class
@@ -379,23 +376,11 @@ def build_targets(model, targets):
         # gy = (t[:, 3] / layer.nG).view(-1,1)
         # TODO: More efficient division operation
         # gx == width
-        gx = (t[:, 2] / layer.stride[1]).view(-1,1)
+        gx = (t[:, 2] / layer.stride[0]).view(-1,1)
         # gy == height
-        gy = (t[:, 3] / layer.stride[0]).view(-1,1)
+        gy = (t[:, 3] / layer.stride[1]).view(-1,1)
         gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
-        # print("[debug] self.img_size: ", layer.img_size)
-        # print("[debug] layer.stride: ", layer.stride)
-        # print("[debug] t[:, 2].max(): ", t[:, 2].max())
-        # print("[debug] t[:, 2]: ", t[:, 2])
-        # print("[debug] t[:, 3].max(): ", t[:, 3].max())
-        # print("[debug] layer.nGh,w: ", layer.nGh ," ", layer.nG)
-        # print("[debug] layer.nGh: ", )
-        #print("[debug] targets[:, 2:3]: ", targets[:, 2:4])
-        #print("[debug] gxy: ", gxy)
-        #print("[debug] gxy.long(): ",  gxy.long())
-        # print("[debug] gxy.long().t(): ",  gxy.long().t())
-        # exit()
-        #gxy = torch.div(t[:, 2:4], grid_size)#t[:, 2:4] / grid_size
+
         gi, gj = gxy.long().t()  # grid_i, grid_j
         indices.append((b, a, gj, gi))
 
@@ -410,7 +395,6 @@ def build_targets(model, targets):
         tcls.append(c)
         if c.shape[0]:
             assert c.max() <= layer.nC, 'Target classes exceed model classes'
-    # exit()
     return txy, twh, tcls, indices
 
 
@@ -466,7 +450,7 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5):
         pred = pred[(-pred[:, 4]).argsort()]
 
         det_max = []
-        nms_style = 'MERGE'  # 'OR' (default), 'AND', 'MERGE' (experimental)
+        nms_style = 'OR'  # 'OR' (default), 'AND', 'MERGE' (experimental)
         for c in pred[:, -1].unique():
             dc = pred[pred[:, -1] == c]  # select class c
             dc = dc[:min(len(dc), 100)]  # limit to first 100 boxes: https://github.com/ultralytics/yolov3/issues/117
@@ -492,6 +476,7 @@ def non_max_suppression(prediction, conf_thres=0.5, nms_thres=0.5):
                     if len(dc) == 1:  # Stop if we're at the last detection
                         break
                     iou = bbox_iou(dc[0], dc[1:])  # iou with other boxes
+                    # print(len(iou > 0.5))
                     dc = dc[1:][iou < nms_thres]  # remove ious > threshold
 
             elif nms_style == 'AND':  # requires overlap, single boxes erased

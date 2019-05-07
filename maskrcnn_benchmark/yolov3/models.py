@@ -121,31 +121,33 @@ class YOLOLayer(nn.Module):
 
     def forward(self, p, img_size, var=None):
         if ONNX_EXPORT:
-            bs, nG = 1, self.nG  # batch size, grid size
+            bs, nGh, nGw = 1, self.nGh, self.nGw  # batch size, grid size
         else:
             bs, nGh, nGw = p.shape[0], p.shape[-2], p.shape[-1]
-            # print("[debug models.py] bs {}, nGh {}, nGw {}:".format(bs, nGh, nGw))
+            print("[debug models.py] bs {}, nGh {}, nGw {}:".format(bs, nGh, nGw))
             if self.img_size != img_size:
                 create_grids(self, img_size, nGh, nGw, p.device)
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
-        # print("[debug models.py] p.shape: ", p.shape)
+        print("[debug models.py] p.shape: ", p.shape)
         feat_map = p
+        # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
         p = p.view(bs, self.nA, self.nC + 5, nGh, nGw).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
             io = p.clone()  # inference output
-            io[..., 0:2] = torch.sigmoid(io[..., 0:2]) + self.grid_xy  # xy
-            io[..., 2:4] = torch.exp(io[..., 2:4]) * self.anchor_wh  # wh yolo method
+            io[..., 0:2] = (torch.sigmoid(io[..., 0:2]) + self.grid_xy) * self.stride  # xy
+            io[..., 2:4] = (torch.exp(io[..., 2:4]) * self.anchor_wh) * self.stride  # wh yolo method
             # io[..., 2:4] = ((torch.sigmoid(io[..., 2:4]) * 2) ** 3) * self.anchor_wh  # wh power method
             io[..., 4:] = torch.sigmoid(io[..., 4:])  # p_conf, p_cls
             # io[..., 5:] = F.softmax(io[..., 5:], dim=4)  # p_cls
-            io[..., :4] *= self.stride[0]
+            # (x,y,h,w) *= (strideX, strideY, strideX, strideY)
 
             # reshape from [1, 3, 13, 13, 85] to [1, 507, 85]
             return io.view(bs, -1, 5 + self.nC), p, feat_map
 
             # return p
 
+        # Does not run
         elif ONNX_EXPORT:
             grid_xy = self.grid_xy.repeat((1, self.nA, 1, 1, 1)).view((1, -1, 2))
             anchor_wh = self.anchor_wh.repeat((1, 1, nG, nG, 1)).view((1, -1, 2)) / nG
@@ -171,12 +173,14 @@ class YOLOLayer(nn.Module):
 
         else:  # inference
             io = p.clone()  # inference output
-            io[..., 0:2] = torch.sigmoid(io[..., 0:2]) + self.grid_xy  # xy
-            io[..., 2:4] = torch.exp(io[..., 2:4]) * self.anchor_wh  # wh yolo method
+            # io[..., 0:2] = torch.sigmoid(io[..., 0:2]) + self.grid_xy  # xy
+            # io[..., 2:4] = torch.exp(io[..., 2:4]) * self.anchor_wh  # wh yolo method
+            io[..., 0:2] = (torch.sigmoid(io[..., 0:2]) + self.grid_xy) * self.stride  # xy
+            io[..., 2:4] = (torch.exp(io[..., 2:4]) * self.anchor_wh) * self.stride  # wh yolo method
             # io[..., 2:4] = ((torch.sigmoid(io[..., 2:4]) * 2) ** 3) * self.anchor_wh  # wh power method
             io[..., 4:] = torch.sigmoid(io[..., 4:])  # p_conf, p_cls
             # io[..., 5:] = F.softmax(io[..., 5:], dim=4)  # p_cls
-            io[..., :4] *= self.stride[0]
+            # io[..., :4] *= self.stride[0]
 
             # reshape from [1, 3, 13, 13, 85] to [1, 507, 85]
             return io.view(bs, -1, 5 + self.nC), p, feat_map
@@ -198,9 +202,7 @@ class Darknet(nn.Module):
         '''x = image_list class'''
         # extract image size from image_list class
         img_size = x.image_sizes[0]
-        img_size = [img_size[0],img_size[1]] # [height, width]
-        # print(img_size)
-        # exit()
+        img_size = [img_size[1],img_size[0]] # [height, width]
         # Extranct image tensor from image list
         x = x.tensors
         layer_outputs = []
@@ -221,17 +223,12 @@ class Darknet(nn.Module):
                 layer_i = int(module_def['from'])
                 x = layer_outputs[-1] + layer_outputs[layer_i]
             elif mtype == 'yolo':
-                # print("[debug] x.shape: ", x.shape)
                 x = module[0](x, img_size)
                 output.append(x)
             layer_outputs.append(x)
-        # exit()
 
         if self.training:
-            # print("[debug models.py Darknet] layer_outputs: ", layer_outputs)
-            # [print(layer.shape) for layer in layer_outputs]
             io, p, feat_map = list(zip(*output))  # inference output, training output
-            # [print(layer.shape) for layer in p]
 
             return torch.cat(io, 1), p, feat_map
             # return output
@@ -239,8 +236,6 @@ class Darknet(nn.Module):
             output = torch.cat(output, 1)  # cat 3 layers 85 x (507, 2028, 8112) to 85 x 10647
             return output[5:85].t(), output[:4].t()  # ONNX scores, boxes
         else:
-            # print("[debug models.py Darknet] layer_outputs: ", layer_outputs)
-            # [print(layer.shape) for layer in layer_outputs]
             io, p, feat_map = list(zip(*output))  # inference output, training output
             # [print(layer.shape) for layer in p]
 
@@ -252,25 +247,24 @@ def get_yolo_layers(model):
     return [i for i, x in enumerate(a) if x]  # [82, 94, 106] for yolov3
 
 def create_grids(self, img_size, nGh, nGw, device='cpu'):
+    # image_size = [width, height]
     self.img_size = img_size
-    self.stride = torch.tensor([img_size[0] / nGh, img_size[1] / nGw]).to(device)
-    # print("[debug model.py] self.stride: ", self.stride)
+    self.stride = torch.tensor([img_size[0] / nGw, img_size[1] / nGh]).to(device)
     # build xy offsets
     # DEBUG: double check for repeat error
     grid_x = torch.arange(nGw).repeat((nGh, 1)).view((1, 1, nGh, nGw)).float()
-    # print("[debug model.py] grid_x: ", grid_x.shape)
-    grid_y = grid_x#.permute(0, 1, 3, 2)
-    # print("[debug model.py] grid_y: ", grid_y.shape)
+    grid_y = torch.arange(nGh).repeat((nGw),1).permute(1,0).view((1, 1, nGh, nGw)).float()
+    # print("[debug model.py] grid_y: ", grid_y)
+    # print("[debug model.py] grid_y.shape: ", grid_y.shape)
     self.grid_xy = torch.stack((grid_x, grid_y), 4).to(device)
-    # print("[debug model.py] self.grid_xy: ", self.grid_xy.shape)
-
+    # print("[debug model.py] self.grid_xy.shape: ", self.grid_xy.shape)
     # build wh gains
     # print("[debug model.py] self.anchors: ", self.anchors)
     self.anchor_vec = self.anchors.to(device) / self.stride
     # print("[debug model.py] self.anchor_vec: ", self.anchor_vec)
     self.anchor_wh = self.anchor_vec.view(1, self.nA, 1, 1, 2).to(device)
-    # print("[debug model.py] self.anchor_wh.shape: ", self.anchor_wh.shape)
-    self.nG = torch.FloatTensor([nGw]).to(device)
+    # print("[debug model.py] self.anchor_wh: ", self.anchor_wh)
+    self.nGw = torch.FloatTensor([nGw]).to(device)
     self.nGh = torch.FloatTensor([nGh]).to(device)
 
 def load_darknet_weights(self, weights, cutoff=-1):

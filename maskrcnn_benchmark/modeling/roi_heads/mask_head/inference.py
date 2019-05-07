@@ -121,6 +121,11 @@ def paste_mask_in_image(mask, box, im_h, im_w, thresh=0.5, padding=1):
     box = expand_boxes(box[None], scale)[0]
     box = box.numpy().astype(np.int32)
 
+    box[0] = min(box[0], im_w)
+    box[2] = min(box[2], im_w)
+    box[1] = min(box[1], im_h)
+    box[3] = min(box[3], im_h)
+
     TO_REMOVE = 1
     w = box[2] - box[0] + TO_REMOVE
     h = box[3] - box[1] + TO_REMOVE

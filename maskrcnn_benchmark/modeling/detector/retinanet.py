@@ -14,6 +14,8 @@ from maskrcnn_benchmark.modeling.roi_heads.mask_head.mask_head import build_roi_
 #from maskrcnn_benchmark.modeling.roi_heads.sparsemask_head.mask_head import build_sparse_mask_head
 from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 import copy
+import cv2
+
 
 class RetinaNet(nn.Module):
     """
@@ -63,25 +65,27 @@ class RetinaNet(nn.Module):
         (anchors, detections), detector_losses = self.rpn(images, rpn_features, targets)
         # print("[debug retinanet.py] detections: ", detections)
         # print("[debug retinanet.py] detector_losses: ", detector_losses)
-        # print("[debug retinanet.py] len(anchors): ", len(anchors))
-        # print("[debug retinanet.py] anchors[0]: ", anchors[0])
+        print("[debug retinanet.py] anchors[0]: ", anchors[0])
         # print("[debug retinanet.py] len(anchors[0][0]): ", len(anchors[0][0]))
         # print("[debug retinanet.py] anchors[0][0].bbox.shape: ", anchors[0][0].bbox.shape)
         # print("[debug retinanet.py] anchors[0][0].extra_fields: ", anchors[0][0].extra_fields)
         # # print("[debug retinanet.py] anchors[0]: ", anchors[0])
         #
-        # print("[debug retinanet.py] detections: ", detections)
+        print("[debug retinanet.py] detections: ", detections)
         # print("[debug retinanet.py] type(detections): ", type(detections))
         # print("[debug retinanet.py] detections[0].bbox: ", detections[0].bbox)
         # print("[debug retinanet.py] detections[0].extra_fields: ", detections[0].extra_fields)
         #
         # print("[debug retinanet.py] detector_losses: ", detector_losses)
+        print("[debug retinanet.py] len(features): ", len(features))
+        print("[debug retinanet.py] type(features): ", type(features))
+        for i in range(len(features)):
+            print(i)
+            print("[debug retinanet.py] features[{}].shape bf: ".format(i), features[i].shape)
         features = features[3:]
-        # for i in range(len(features)):
-        #     print(i)
-        #     print("[debug retinanet.py] features[{}].shape: ".format(i), features[i].shape)
-        # print("[debug retinanet.py] len(features): ", len(features))
-        # print("[debug retinanet.py] type(features): ", type(features))
+        for i in range(len(features)):
+            print(i)
+            print("[debug retinanet.py] features[{}].shape: ".format(i), features[i].shape)
 
         if self.training:
             losses = {}
@@ -137,4 +141,5 @@ class RetinaNet(nn.Module):
                     )
                 else:
                     x, detections, mask_losses = self.mask(features, proposals, targets)
+            print("[debug retinanet.py] detections: ", detections[0].extra_fields)
             return detections

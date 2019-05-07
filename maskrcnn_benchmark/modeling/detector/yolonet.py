@@ -20,7 +20,7 @@ from maskrcnn_benchmark.structures.boxlist_ops import cat_boxlist
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 
 from maskrcnn_benchmark.modeling.rpn.retinanet_infer import make_retinanet_postprocessor
-
+import cv2
 
 import copy
 
@@ -83,11 +83,6 @@ class YoloNet(nn.Module):
             raise ValueError("In training mode, targets should be passed")
         # Image is converted to image list class
         images = to_image_list(images)
-        # print("[debug] images: ", images)
-        # print("[debug] images.tensors: ", images.image_sizes[0].shape)
-        # print("[debug] images.tensors.size: ", images)
-        # exit()
-        # features = self.backbones(images.tensors)
         ''' Issue 2: outputing feature, and predicted box'''
         # Yolonet is Darknet in model.py
         # need to return layer feature and anchor box
@@ -98,13 +93,6 @@ class YoloNet(nn.Module):
         output: (1, Num_anchor, anchorH, anchorW, 5+class)
         '''
         detection, output, features = self.yolonet(images) #, targets)
-        # print("[debug yolonet.py] output: ", output[0].shape)
-        # Select most
-
-        # print("[debug yolonet.py] detection: ", detection)
-        # print("[debug yolonet.py] len(detection): ", len(detection))
-        # print("[debug yolonet.py] detection[0]: ", detection[0])
-        # print("[debug yolonet.py] detection[0].shape: ", detection[0].shape)
 
         # TODO: Fix target list
         '''Target is a boxcoder class and needed to be extracted for yolo processing'''
@@ -156,9 +144,7 @@ class YoloNet(nn.Module):
         Should nms then loss?
         '''
         with torch.no_grad():
-            detection = non_max_suppression(detection, conf_thres=0.1, nms_thres=0.5)
-            # print("type: ", type(detection[0]))
-            #print(detection[0].shape)
+            detection = non_max_suppression(detection, conf_thres=0.5, nms_thres=0.6)
         # ''' Use retinanet nms'''
         # if self.training:
         #     detections = self.box_selector_train(anchors, box_cls, box_regression)
@@ -168,22 +154,21 @@ class YoloNet(nn.Module):
         #Convert yolo detections (xyhw) to retinanet format(xyxy + extra_fields(labels, scores))
         detections = []
         # for dect in detection:
-        # todo add objectiveness field
         if detection[0] is None:
             dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
             dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
             dect.add_field("objectness", torch.tensor([0], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
             dect.add_field("scores", torch.tensor([0.01], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
         else:
-            # print(len(detection[0]))
+            print("num detec: ", len(detection[0]))
+            # print("targets ", targets)
             topk = 100
             dect = BoxList(detection[0][:topk,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
-            # dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
             dect.add_field("labels", detection[0][:topk, 6].to(torch.int64))
             dect.add_field("objectness", detection[0][:topk, 4])
+            print("objectness: ", detection[0][:topk, 4])
+            print("scores: ", detection[0][:topk, 5])
             dect.add_field("scores", detection[0][:topk, 5])
-        # print(detection[0][:])
-        # exit()
         # exit()
         # dect = dect.convert("xyxy")
         # TODO: Obtrain correct labels
@@ -191,14 +176,13 @@ class YoloNet(nn.Module):
         detections.append(dect)
 
         #output = list(output)
-        features = []
+        # features = []
         # print("[debug yolonet.py] output: ", type(output))
-        for i in range(len(output)):
-            o = output[2-i]
-            feat_map_size = o.shape[2:4]
-            new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
-            features.append(new_feat)
-            # print(o.shape)
+        # for i in range(len(output)):
+        #     o = output[i]
+        #     feat_map_size = o.shape[2:4]
+        #     new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
+        #     features.append(new_feat)
         # for i, o in enumerate(output):
         #     feat_map_size = o.shape[2:4]
         #     new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
@@ -216,10 +200,6 @@ class YoloNet(nn.Module):
                     proposals = []
                     for (image_detections, image_targets) in zip(
                         detections, targets):
-                        # print("[debug yolonet.py] image_detections: ", image_detections)
-                        # print("[debug yolonet.py] image_targets: ", image_targets.get_field('labels').dtype)
-                        # print("[debug yolonet.py] image_targets: ", image_targets.get_field('labels').device)
-                        # exit()
                         merge_list = []
                         if not isinstance(image_detections, list):
                             merge_list.append(image_detections.copy_with_fields('labels'))
@@ -233,13 +213,9 @@ class YoloNet(nn.Module):
                             proposals.append(cat_boxlist(merge_list))
                     '''# TODO:  Double check mask, low loss'''
                     # features has backward
-                    # print("[debug yolonet.py] features: ", features)
-                    # print("[debug yolonet.py] proposals: ", proposals)
-                    # exit()
                     x, result, mask_losses = self.mask(features, proposals, targets)
                 elif self.cfg.MODEL.SPARSE_MASK_ON:
                     x, result, mask_losses = self.mask(features, anchors, targets)
-                '''@# TODO: One of the variables needed for gradient computation'''
                 losses.update(mask_losses)
             return losses
         else:
@@ -265,4 +241,6 @@ class YoloNet(nn.Module):
                     )
                 else:
                     x, detections, mask_losses = self.mask(features, proposals, targets)
+                    print("[debug yolonet.py] detections: ", detections)
+                    # print("[debug yolonet.py] detections[0].extra_fields: ", detections[0].extra_fields)
             return detections

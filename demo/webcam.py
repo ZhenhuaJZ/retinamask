@@ -4,7 +4,7 @@ import cv2
 
 from maskrcnn_benchmark.config import cfg
 from predictor import COCODemo
-
+import os
 import time
 
 
@@ -12,20 +12,20 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Webcam Demo")
     parser.add_argument(
         "--config-file",
-        default="../configs/caffe2/e2e_mask_rcnn_R_50_FPN_1x_caffe2.yaml",
+        default="/home/stirfryrabbit/Projects/Research_Project/sheepCount/retinamask/configs/yolonet/yolonet_mask_R-101-FPN_2x_adjust_std011_ms.yaml",
         metavar="FILE",
         help="path to config file",
     )
     parser.add_argument(
         "--confidence-threshold",
         type=float,
-        default=0.7,
+        default=0.5,
         help="Minimum score for the prediction to be shown",
     )
     parser.add_argument(
         "--min-image-size",
         type=int,
-        default=224,
+        default=416,
         help="Smallest size of the image to feed to the model. "
             "Model was trained with 800, which gives best results",
     )
@@ -63,15 +63,18 @@ def main():
         masks_per_dim=args.masks_per_dim,
         min_image_size=args.min_image_size,
     )
-
-    cam = cv2.VideoCapture(0)
-    while True:
+    files = os.listdir("/home/stirfryrabbit/Projects/Research_Project/sheepCount/retinamask/train_test_data/coco-style/val2017")
+    # print(files)
+    # cam = cv2.VideoCapture(0)
+    # while True:
+    for file in files:
+        img = cv2.imread("/home/stirfryrabbit/Projects/Research_Project/sheepCount/retinamask/train_test_data/coco-style/val2017/{}".format(file))
         start_time = time.time()
-        ret_val, img = cam.read()
+        # ret_val, img = cam.read()
         composite = coco_demo.run_on_opencv_image(img)
         print("Time: {:.2f} s / img".format(time.time() - start_time))
         cv2.imshow("COCO detections", composite)
-        if cv2.waitKey(1) == 27:
+        if cv2.waitKey(1000) == 27:
             break  # esc to quit
     cv2.destroyAllWindows()
 
