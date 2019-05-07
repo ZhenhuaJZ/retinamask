@@ -346,6 +346,7 @@ def build_targets(model, targets):
         # print("[debug yolov3.utils.py] targets[:, 4:6]: ", targets[:, 4:6])
         # gw = (targets[:, 4] / layer.nG).view(-1,1)
         # gh = (targets[:, 5] / layer.nGh).view(-1,1)
+        # DEBUG: Target/stride may have issue
         gw = (targets[:, 4] / layer.stride[0]).view(-1,1)
         gh = (targets[:, 5] / layer.stride[1]).view(-1,1)
         gwh = torch.cat([gw,gh],1).contiguous()
