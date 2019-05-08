@@ -144,7 +144,7 @@ class YoloNet(nn.Module):
         Should nms then loss?
         '''
         with torch.no_grad():
-            detection = non_max_suppression(detection, conf_thres=0.5, nms_thres=0.6)
+            detection = non_max_suppression(detection, conf_thres=0.7, nms_thres=0.6)
         # ''' Use retinanet nms'''
         # if self.training:
         #     detections = self.box_selector_train(anchors, box_cls, box_regression)

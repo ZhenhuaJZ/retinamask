@@ -124,11 +124,9 @@ class YOLOLayer(nn.Module):
             bs, nGh, nGw = 1, self.nGh, self.nGw  # batch size, grid size
         else:
             bs, nGh, nGw = p.shape[0], p.shape[-2], p.shape[-1]
-            print("[debug models.py] bs {}, nGh {}, nGw {}:".format(bs, nGh, nGw))
             if self.img_size != img_size:
                 create_grids(self, img_size, nGh, nGw, p.device)
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
-        print("[debug models.py] p.shape: ", p.shape)
         feat_map = p
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
         p = p.view(bs, self.nA, self.nC + 5, nGh, nGw).permute(0, 1, 3, 4, 2).contiguous()  # prediction
