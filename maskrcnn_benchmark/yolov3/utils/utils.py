@@ -302,7 +302,6 @@ def build_targets(model, targets, img_size):
     # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
     # print("[debug yolov3.utils.py] targets.extra_fields[labels]): ", targets.extra_fields["labels"])
     labels = targets.extra_fields["labels"].type(targets.bbox.type()).unsqueeze(-1)
-    # print("[debug yolov3.utils.py] labels: ", labels)
     # print("[debug yolov3.utils.py] labels.shape: ", labels.shape)
     bbox = targets.bbox/image_size
     # print("[debug yolov3.utils.py] bbox: ", bbox)
@@ -347,7 +346,8 @@ def build_targets(model, targets, img_size):
         gh = (targets[:, 5] * layer.nGh).view(-1,1)
         gwh = torch.cat([gw,gh],1).contiguous()
         #targets[:, 4:6] / grid_size
-        # print("[debug] gwh: ", gwh)
+        # print("[debug] gw: ", gw)
+        # print("[debug] box: ", box[:,2]/ layer.stride[0])
         # print("[debug] layer.anchor_vec: ", layer.anchor_vec)
         # print("[debug yolov3.utils.py] gwh: ", gwh)
         if nt:
@@ -361,7 +361,7 @@ def build_targets(model, targets, img_size):
             if reject:
                 j = iou > 0.10
                 t, a, gwh = targets[j], a[j], gwh[j]
-
+            print(iou)
         # print("[debug yolov3.utils.py] t: ", t)
         # Indices
         b, c = t[:, :2].long().t()  # target image, class
@@ -375,6 +375,9 @@ def build_targets(model, targets, img_size):
         # gy = (t[:, 3] / layer.stride[1]).view(-1,1)
         # gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
         gx = (t[:, 2] * layer.nGw).view(-1,1)
+        # print("[debug] gx: ", gx)
+        # print("[debug] box: ", box[:,0]/ layer.stride[0])
+        # print("[debug] box: ", )
         # gy == height
         gy = (t[:, 3] * layer.nGh).view(-1,1)
         gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size

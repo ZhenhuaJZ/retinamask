@@ -125,6 +125,8 @@ class YOLOLayer(nn.Module):
         else:
             bs, nGh, nGw = p.shape[0], p.shape[-2], p.shape[-1]
             if self.img_size != img_size:
+                # Scale base on image size
+                self.anchors = torch.floor(self.anchors * img_size[0]/416)
                 create_grids(self, img_size, nGh, nGw, p.device)
         # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, gridh, gridw, classes + xywh)
         feat_map = p
@@ -256,7 +258,7 @@ def create_grids(self, img_size, nGh, nGw, device='cpu'):
     # print("[debug model.py] grid_y.shape: ", grid_y.shape)
     self.grid_xy = torch.stack((grid_x, grid_y), 4).to(device)
     # build wh gains
-    # print("[debug model.py] self.anchors: ", self.anchors)
+    print("[debug model.py] self.anchors: ", self.anchors)
     self.anchor_vec = self.anchors.to(device) / self.stride
     # print("[debug model.py] self.anchor_vec: ", self.anchor_vec)
     self.anchor_wh = self.anchor_vec.view(1, self.nA, 1, 1, 2).to(device)

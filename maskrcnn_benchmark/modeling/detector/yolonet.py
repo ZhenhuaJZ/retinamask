@@ -124,9 +124,28 @@ class YoloNet(nn.Module):
         #     anchor = anchor.convert("xyxy")
         #     anchors.append(anchor)
         # print(anchors)
+        if self.cfg.MODEL.MASK_ON or self.cfg.MODEL.SPARSE_MASK_ON:
+            with torch.no_grad():
+                detection = non_max_suppression(detection, conf_thres=0.7, nms_thres=0.6)
+                detections = []
+                # for dect in detection:
+                if detection[0] is None:
+                    dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
+                    dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
+                    dect.add_field("objectness", torch.tensor([0], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
+                    dect.add_field("scores", torch.tensor([0.01], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
+                else:
+                    print("num detec: ", len(detection[0]))
+                    # print("targets ", targets)
+                    topk = 100
+                    dect = BoxList(detection[0][:topk,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
+                    dect.add_field("labels", detection[0][:topk, 6].to(torch.int64))
+                    dect.add_field("objectness", detection[0][:topk, 4])
+                    print("objectness: ", detection[0][:topk, 4])
+                    print("scores: ", detection[0][:topk, 5])
+                    dect.add_field("scores", detection[0][:topk, 5])
 
-        with torch.no_grad():
-            detection = non_max_suppression(detection, conf_thres=0.7, nms_thres=0.6)
+                detections.append(dect)
         # ''' Use retinanet nms'''
         # if self.training:
         #     detections = self.box_selector_train(anchors, box_cls, box_regression)
@@ -134,25 +153,7 @@ class YoloNet(nn.Module):
         #     detections = self.box_selector_test(anchors, box_cls, box_regression)
 
         #Convert yolo detections (xyhw) to retinanet format(xyxy + extra_fields(labels, scores))
-        detections = []
-        # for dect in detection:
-        if detection[0] is None:
-            dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
-            dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
-            dect.add_field("objectness", torch.tensor([0], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
-            dect.add_field("scores", torch.tensor([0.01], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
-        else:
-            print("num detec: ", len(detection[0]))
-            # print("targets ", targets)
-            topk = 100
-            dect = BoxList(detection[0][:topk,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
-            dect.add_field("labels", detection[0][:topk, 6].to(torch.int64))
-            dect.add_field("objectness", detection[0][:topk, 4])
-            print("objectness: ", detection[0][:topk, 4])
-            print("scores: ", detection[0][:topk, 5])
-            dect.add_field("scores", detection[0][:topk, 5])
 
-        detections.append(dect)
 
         #output = list(output)
         # features = []
