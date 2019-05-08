@@ -71,15 +71,21 @@ class RetinaNet(nn.Module):
         # print("[debug retinanet.py] anchors[0][0].extra_fields: ", anchors[0][0].extra_fields)
         # # print("[debug retinanet.py] anchors[0]: ", anchors[0])
         #
-        #print("[debug retinanet.py] detections: ", detections)
+        # print("[debug retinanet.py] detections: ", detections)
         # print("[debug retinanet.py] type(detections): ", type(detections))
         # print("[debug retinanet.py] detections[0].bbox: ", detections[0].bbox)
         # print("[debug retinanet.py] detections[0].extra_fields: ", detections[0].extra_fields)
         #
         # print("[debug retinanet.py] detector_losses: ", detector_losses)
-        #print("[debug retinanet.py] len(features): ", len(features))
-        #print("[debug retinanet.py] type(features): ", type(features))
+        # print("[debug retinanet.py] len(features): ", len(features))
+        # print("[debug retinanet.py] type(features): ", type(features))
+        # for i in range(len(features)):
+        #     print(i)
+        #     print("[debug retinanet.py] features[{}].shape bf: ".format(i), features[i].shape)
         features = features[3:]
+        # for i in range(len(features)):
+        #     print(i)
+        #     print("[debug retinanet.py] features[{}].shape: ".format(i), features[i].shape)
 
         if self.training:
             losses = {}

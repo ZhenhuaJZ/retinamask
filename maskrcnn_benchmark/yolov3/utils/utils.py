@@ -268,10 +268,6 @@ def compute_loss(p, targets):  # predictions, targets
             #print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
             # print("[debug yolov3.utils.py] gi: ", gi)
             # print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
-            # print("[debug yolov3.utils.py] pi0: ", pi0)
-            # print("[debug yolov3.utils.py] pi0.shape: ", pi0.shape)
-            # print("[debug yolov3.utils.py] [b, a, gj, gi] [{}, {}, {}, {}]: ".format(b, a, gj, gi))
-            # print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
             pi = pi0[b, a, gj, gi]  # predictions closest to anchors
             tconf[b, a, gj, gi] = 1  # conf
             # print("[debug yolov3.utils.py] pi: ", pi)
@@ -294,27 +290,24 @@ def compute_loss(p, targets):  # predictions, targets
 
     return loss, torch.cat((lxy, lwh, lconf, lcls, loss)).detach()
 
-
-def build_targets(model, targets):
+# DEBUG: May have issue here
+def build_targets(model, targets, img_size):
     # targets = [batch, class, x, y, w, h]
     # Retina target data structure is converted to yolo target data structure
     if type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel):
         model = model.module
-    '''
-    Q: what is image dimension
-    A: 0 array
-    '''
     #### modifications
     targets = targets[0].convert("xywh")
+    image_size = torch.tensor([img_size[1], img_size[0], img_size[1], img_size[0]], dtype = targets.bbox.dtype, device = targets.bbox.device)
     # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
     # print("[debug yolov3.utils.py] targets.extra_fields[labels]): ", targets.extra_fields["labels"])
     labels = targets.extra_fields["labels"].type(targets.bbox.type()).unsqueeze(-1)
     # print("[debug yolov3.utils.py] labels: ", labels)
     # print("[debug yolov3.utils.py] labels.shape: ", labels.shape)
-    bbox = targets.bbox
+    bbox = targets.bbox/image_size
     # print("[debug yolov3.utils.py] bbox: ", bbox)
     # print("[debug yolov3.utils.py] bbox.shape: ", bbox.shape)
-    bbox = torch.cat((labels, targets.bbox), 1)
+    bbox = torch.cat((labels, bbox), 1)
     # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
     # exit()
     # print("[debug yolov3.utils.py] bbox.dtype: ", bbox.type())
@@ -347,8 +340,11 @@ def build_targets(model, targets):
         # gw = (targets[:, 4] / layer.nG).view(-1,1)
         # gh = (targets[:, 5] / layer.nGh).view(-1,1)
         # DEBUG: Target/stride may have issue
-        gw = (targets[:, 4] / layer.stride[0]).view(-1,1)
-        gh = (targets[:, 5] / layer.stride[1]).view(-1,1)
+        # gw = (targets[:, 4] / layer.stride[0]).view(-1,1)
+        # gh = (targets[:, 5] / layer.stride[1]).view(-1,1)
+        # gwh = torch.cat([gw,gh],1).contiguous()
+        gw = (targets[:, 4] * layer.nGw).view(-1,1)
+        gh = (targets[:, 5] * layer.nGh).view(-1,1)
         gwh = torch.cat([gw,gh],1).contiguous()
         #targets[:, 4:6] / grid_size
         # print("[debug] gwh: ", gwh)
@@ -367,19 +363,20 @@ def build_targets(model, targets):
                 t, a, gwh = targets[j], a[j], gwh[j]
 
         # print("[debug yolov3.utils.py] t: ", t)
-        # exit()
         # Indices
         b, c = t[:, :2].long().t()  # target image, class
         # Gxy is multiplied by grid size
         '''Issue with assigning target'''
         # DEBUG: Correct gxy
-        # gx = (t[:, 2] / layer.nGh).view(-1,1)
-        # gy = (t[:, 3] / layer.nG).view(-1,1)
         # TODO: More efficient division operation
         # gx == width
-        gx = (t[:, 2] / layer.stride[0]).view(-1,1)
+        # gx = (t[:, 2] / layer.stride[0]).view(-1,1)
+        # # gy == height
+        # gy = (t[:, 3] / layer.stride[1]).view(-1,1)
+        # gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
+        gx = (t[:, 2] * layer.nGw).view(-1,1)
         # gy == height
-        gy = (t[:, 3] / layer.stride[1]).view(-1,1)
+        gy = (t[:, 3] * layer.nGh).view(-1,1)
         gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
 
         gi, gj = gxy.long().t()  # grid_i, grid_j

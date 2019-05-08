@@ -126,13 +126,14 @@ class YOLOLayer(nn.Module):
             bs, nGh, nGw = p.shape[0], p.shape[-2], p.shape[-1]
             if self.img_size != img_size:
                 create_grids(self, img_size, nGh, nGw, p.device)
-        # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
+        # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, gridh, gridw, classes + xywh)
         feat_map = p
-        # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, grid, grid, classes + xywh)
+        # p.view(bs, 255, 13, 13) -- > (bs, 3, 13, 13, 85)  # (bs, anchors, gridh, gridw, classes + xywh)
         p = p.view(bs, self.nA, self.nC + 5, nGh, nGw).permute(0, 1, 3, 4, 2).contiguous()  # prediction
 
         if self.training:
             io = p.clone()  # inference output
+            # DEBUG: May have issue here
             io[..., 0:2] = (torch.sigmoid(io[..., 0:2]) + self.grid_xy) * self.stride  # xy
             io[..., 2:4] = (torch.exp(io[..., 2:4]) * self.anchor_wh) * self.stride  # wh yolo method
             # io[..., 2:4] = ((torch.sigmoid(io[..., 2:4]) * 2) ** 3) * self.anchor_wh  # wh power method
@@ -246,16 +247,14 @@ def get_yolo_layers(model):
 
 def create_grids(self, img_size, nGh, nGw, device='cpu'):
     # image_size = [width, height]
+    # DEBUG: May have issue here
     self.img_size = img_size
     self.stride = torch.tensor([img_size[0] / nGw, img_size[1] / nGh]).to(device)
     # build xy offsets
-    # DEBUG: double check for repeat error
     grid_x = torch.arange(nGw).repeat((nGh, 1)).view((1, 1, nGh, nGw)).float()
     grid_y = torch.arange(nGh).repeat((nGw),1).permute(1,0).view((1, 1, nGh, nGw)).float()
-    # print("[debug model.py] grid_y: ", grid_y)
     # print("[debug model.py] grid_y.shape: ", grid_y.shape)
     self.grid_xy = torch.stack((grid_x, grid_y), 4).to(device)
-    # print("[debug model.py] self.grid_xy.shape: ", self.grid_xy.shape)
     # build wh gains
     # print("[debug model.py] self.anchors: ", self.anchors)
     self.anchor_vec = self.anchors.to(device) / self.stride
