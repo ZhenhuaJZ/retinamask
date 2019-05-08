@@ -348,8 +348,8 @@ def build_targets(model, targets, img_size):
         gwh = torch.cat([gw,gh],1).contiguous()
         #targets[:, 4:6] / grid_size
         # print("[debug] gwh: ", gwh)
-        print("[debug] layer.anchor_vec: ", layer.anchor_vec)
-        print("[debug yolov3.utils.py] gwh: ", gwh)
+        # print("[debug] layer.anchor_vec: ", layer.anchor_vec)
+        # print("[debug yolov3.utils.py] gwh: ", gwh)
         if nt:
             # compare iou of height and width, not x and y location
             iou = [wh_iou(x, gwh) for x in layer.anchor_vec]

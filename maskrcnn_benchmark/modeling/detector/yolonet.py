@@ -94,7 +94,6 @@ class YoloNet(nn.Module):
         output: (1, Num_anchor, anchorH, anchorW, 5+class)
         '''
         detection, output, features = self.yolonet(images) #, targets)
-
         # TODO: Fix target list
         '''Target is a boxcoder class and needed to be extracted for yolo processing'''
         if self.training:
