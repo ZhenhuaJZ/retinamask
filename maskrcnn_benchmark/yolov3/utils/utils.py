@@ -361,7 +361,7 @@ def build_targets(model, targets, img_size):
             if reject:
                 j = iou > 0.10
                 t, a, gwh = targets[j], a[j], gwh[j]
-            print(iou)
+
         # print("[debug yolov3.utils.py] t: ", t)
         # Indices
         b, c = t[:, :2].long().t()  # target image, class
