@@ -249,8 +249,6 @@ def compute_loss(p, targets):  # predictions, targets
     MSE = nn.MSELoss()
     CE = nn.CrossEntropyLoss()
     BCE = nn.BCEWithLogitsLoss()
-    #print("[debug yolov3.utils.py] txy: ", txy)
-    #print("[debug yolov3.utils.py] type(txy): ", type(txy))
     # Compute losses
     # gp = [x.numel() for x in tconf]  # grid points
     for i, pi0 in enumerate(p):  # layer i predictions, i
@@ -260,23 +258,9 @@ def compute_loss(p, targets):  # predictions, targets
         # Compute losses
         k = 1  # nt / bs
         if nt:
-            # print("[debug yolov3.utils.py] b: ", b)
-            #print("[debug yolov3.utils.py] b.shape: ", b.shape)
-            # print("[debug yolov3.utils.py] a: ", a)
-            #print("[debug yolov3.utils.py] a.shape: ", a.shape)
-            # print("[debug yolov3.utils.py] gj: ", gj)
-            #print("[debug yolov3.utils.py] gj.shape: ", gj.shape)
-            # print("[debug yolov3.utils.py] gi: ", gi)
-            # print("[debug yolov3.utils.py] gi.shape: ", gi.shape)
             pi = pi0[b, a, gj, gi]  # predictions closest to anchors
             tconf[b, a, gj, gi] = 1  # conf
             # print("[debug yolov3.utils.py] pi: ", pi)
-            #print("[debug yolov3.utils.py] pi.shape: ", pi.shape)
-            # print("[debug yolov3.utils.py] pi[..., 0:2]: ", pi[..., 0:2])
-            #print("[debug yolov3.utils.py] pi[..., 0:2].shape: ", pi[..., 0:2].shape)
-            #print("[debug yolov3.utils.py] torch.sigmoid(pi[..., 0:2]).shape: ", torch.sigmoid(pi[..., 0:2]).shape)
-            # print("[debug yolov3.utils.py] txy[i]: ", txy[i])
-            #print("[debug yolov3.utils.py] txy[i].shape: ", txy[i].shape)
             lxy += (k * 8) * MSE(torch.sigmoid(pi[..., 0:2]), txy[i])  # xy loss
 
             lwh += (k * 1) * MSE(pi[..., 2:4], twh[i])  # wh yolo loss
@@ -292,31 +276,30 @@ def compute_loss(p, targets):  # predictions, targets
 
 # DEBUG: May have issue here
 def build_targets(model, targets, img_size):
+    # img_size = [height, width]
+    # Retina targets [bbox_list], needed to convert to [batch, class, x, y, w, h]
     # targets = [batch, class, x, y, w, h]
-    # Retina target data structure is converted to yolo target data structure
     if type(model) in (nn.parallel.DataParallel, nn.parallel.DistributedDataParallel):
         model = model.module
     #### modifications
-    targets = targets[0].convert("xywh")
-    image_size = torch.tensor([img_size[1], img_size[0], img_size[1], img_size[0]], dtype = targets.bbox.dtype, device = targets.bbox.device)
-    # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
-    # print("[debug yolov3.utils.py] targets.extra_fields[labels]): ", targets.extra_fields["labels"])
-    labels = targets.extra_fields["labels"].type(targets.bbox.type()).unsqueeze(-1)
-    # print("[debug yolov3.utils.py] labels.shape: ", labels.shape)
-    bbox = targets.bbox/image_size
-    # print("[debug yolov3.utils.py] bbox: ", bbox)
-    # print("[debug yolov3.utils.py] bbox.shape: ", bbox.shape)
-    bbox = torch.cat((labels, bbox), 1)
-    # print("[debug yolov3.utils.py] targets.extra_fields: ", targets.extra_fields)
-    # exit()
-    # print("[debug yolov3.utils.py] bbox.dtype: ", bbox.type())
-    # print("[debug yolov3.utils.py] torch.zeros((len(bbox), 1), dtype = bbox.dtype): ", torch.zeros((len(bbox), 1), dtype = bbox.dtype, device = bbox.device).type())
-    targets = torch.cat((torch.zeros((len(bbox), 1), dtype = bbox.dtype, device = bbox.device), bbox), 1)
-    # targets = torch.cat(labels, bbox), 1)
-    # print("[debug yolov3.utils.py] bbox: ", bbox)
-
-    # print("[debug yolov3.utils.py] targets: ", targets)
-    # print("[debug yolov3.utils.py] targets.shape: ", targets.shape)
+    # Retina target data structure is converted to yolo target data structure
+    yolo_targets = []
+    for batch, target in enumerate(targets):
+        # Convert retina box [xmin, ymin, w, h] to yolo [xcenter, ycenter, w, h]
+        # Use yolo xyxy2xywh method instead of retina .convert("xywh") method
+        # Retina convert("xywh") = [xmin, ymin, w, h]
+        bbox = xyxy2xywh(target.bbox)
+        # Normalize label xywh
+        image_size = torch.tensor([img_size[1], img_size[0], img_size[1], img_size[0]], dtype = target.bbox.dtype, device = target.bbox.device)
+        bbox = bbox/image_size
+        # append label to bbox
+        labels = target.extra_fields["labels"].type(target.bbox.type()).unsqueeze(-1)
+        bbox = torch.cat((labels, bbox), dim=1)
+        # append batch number to bbox
+        batch_num = torch.tensor([[batch]], dtype = bbox.dtype, device = bbox.device).repeat(len(bbox), 1)
+        bbox = torch.cat((batch_num, bbox), 1)
+        yolo_targets.append(bbox)
+    targets = torch.cat(yolo_targets, dim = 0)
 
     nt = len(targets)
     txy, twh, tcls, indices = [], [], [], []
@@ -335,9 +318,6 @@ def build_targets(model, targets, img_size):
         To match the anchor location together with image label location
         The retinanet label needed to divide by grids
         '''
-        # print("[debug yolov3.utils.py] targets[:, 4:6]: ", targets[:, 4:6])
-        # gw = (targets[:, 4] / layer.nG).view(-1,1)
-        # gh = (targets[:, 5] / layer.nGh).view(-1,1)
         # DEBUG: Target/stride may have issue
         # gw = (targets[:, 4] / layer.stride[0]).view(-1,1)
         # gh = (targets[:, 5] / layer.stride[1]).view(-1,1)
@@ -377,7 +357,6 @@ def build_targets(model, targets, img_size):
         gx = (t[:, 2] * layer.nGw).view(-1,1)
         # print("[debug] gx: ", gx)
         # print("[debug] box: ", box[:,0]/ layer.stride[0])
-        # print("[debug] box: ", )
         # gy == height
         gy = (t[:, 3] * layer.nGh).view(-1,1)
         gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size

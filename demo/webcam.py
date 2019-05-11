@@ -12,7 +12,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Webcam Demo")
     parser.add_argument(
         "--config-file",
-        default="/home/stirfryrabbit/Projects/Research_Project/sheepCount/retinamask/configs/yolonet/yolonet_mask_R-101-FPN_2x_adjust_std011_ms.yaml",
+        default="./configs/yolonet/yolonet_mask_R-101-FPN_2x_adjust_std011_ms.yaml",
         metavar="FILE",
         help="path to config file",
     )
