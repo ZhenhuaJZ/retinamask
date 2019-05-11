@@ -41,23 +41,6 @@ class YoloNet(nn.Module):
         super(YoloNet, self).__init__()
         self.cfg = copy.deepcopy(cfg)
         self.yolonet = Darknet(cfg.YOLONET.CONFIG_PATH)
-        # self.backbone = build_backbone(cfg)
-        # self.rpn = build_retinanet(cfg)
-        # # box_coder = BoxCoder(weights=(10., 10., 5., 5.))
-        #
-        # if self.cfg.MODEL.SPARSE_MASK_ON:
-        #     box_selector_test = make_retinanet_detail_postprocessor(
-        #         self.cfg, 100, box_coder)
-        # else:
-        #     box_selector_test = make_retinanet_postprocessor(
-        #         self.cfg, 100, box_coder)
-        # box_selector_train = None
-        # if self.cfg.MODEL.MASK_ON or self.cfg.MODEL.SPARSE_MASK_ON:
-        #     box_selector_train = make_retinanet_postprocessor(
-        #         self.cfg, 100, box_coder)
-        #
-        # self.box_selector_test = box_selector_test
-        # self.box_selector_train = box_selector_train
 
         self.mask = None
         if cfg.MODEL.MASK_ON:
@@ -144,22 +127,6 @@ class YoloNet(nn.Module):
             detection = non_max_suppression(detection, conf_thres=0.6, nms_thres=0.6)
             # Convert yolo detection to retina boxlist format
             detections = self.yolo2BoxList(detection, image_size, topk = 50)
-
-
-        #output = list(output)
-        # features = []
-        # print("[debug yolonet.py] output: ", type(output))
-        # for i in range(len(output)):
-        #     o = output[i]
-        #     feat_map_size = o.shape[2:4]
-        #     new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
-        #     features.append(new_feat)
-        # for i, o in enumerate(output):
-        #     feat_map_size = o.shape[2:4]
-        #     new_feat = o.permute(0,1,4,2,3).contiguous().view(1,-1,*feat_map_size)
-        #     features.append(new_feat)
-        #     print(output[i].shape)
-        #features = output
 
         """Mask network"""
         if self.training:

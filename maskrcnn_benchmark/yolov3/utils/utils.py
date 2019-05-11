@@ -325,16 +325,9 @@ def build_targets(model, targets, img_size):
         gw = (targets[:, 4] * layer.nGw).view(-1,1)
         gh = (targets[:, 5] * layer.nGh).view(-1,1)
         gwh = torch.cat([gw,gh],1).contiguous()
-        #targets[:, 4:6] / grid_size
-        # print("[debug] gw: ", gw)
-        # print("[debug] box: ", box[:,2]/ layer.stride[0])
-        # print("[debug] layer.anchor_vec: ", layer.anchor_vec)
-        # print("[debug yolov3.utils.py] gwh: ", gwh)
         if nt:
             # compare iou of height and width, not x and y location
             iou = [wh_iou(x, gwh) for x in layer.anchor_vec]
-            # print("[debug yolov3.utils.py] layer.anchor_vec: ", layer.anchor_vec)
-            # print("[debug yolov3.utils.py] iou: ", iou)
             iou, a = torch.stack(iou, 0).max(0)  # best iou and anchor
             # reject below threshold ious (OPTIONAL, increases P, lowers R)
             reject = True
@@ -354,12 +347,11 @@ def build_targets(model, targets, img_size):
         # # gy == height
         # gy = (t[:, 3] / layer.stride[1]).view(-1,1)
         # gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
+        # gx == width
         gx = (t[:, 2] * layer.nGw).view(-1,1)
-        # print("[debug] gx: ", gx)
-        # print("[debug] box: ", box[:,0]/ layer.stride[0])
         # gy == height
         gy = (t[:, 3] * layer.nGh).view(-1,1)
-        gxy = torch.cat([gx,gy],1).contiguous()#targets[:, 4:6] / grid_size
+        gxy = torch.cat([gx,gy],1).contiguous()
 
         gi, gj = gxy.long().t()  # grid_i, grid_j
         indices.append((b, a, gj, gi))

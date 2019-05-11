@@ -1,6 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "RetinaNet"
-  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
+  WEIGHT: "/home/stirfryrabbit/Projects/Research_Project/sheepCount/retinamask/model_0500001.pth"
+  # WEIGHT: "catalog://ImageNetPretrained/MSRA/R-101"
   RPN_ONLY: True
   BACKBONE:
     CONV_BODY: "R-101-FPN"

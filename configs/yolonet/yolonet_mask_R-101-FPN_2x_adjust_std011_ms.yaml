@@ -4,7 +4,7 @@ MODEL:
   RPN_ONLY: True
   BACKBONE:
     CONV_BODY: "R-101-FPN"
-    OUT_CHANNELS: 255
+    OUT_CHANNELS: 21
   RPN:
     USE_FPN: True
     FG_IOU_THRESHOLD: 0.5
@@ -32,17 +32,17 @@ MODEL:
     POOLER_SAMPLING_RATIO: 2
     RESOLUTION: 28
     SHARE_BOX_FEATURE_EXTRACTOR: False
-  MASK_ON: True
+  MASK_ON: False
 DATASETS:
   TRAIN: ("coco_2017_train",)
   TEST: ("coco_2017_val",)
 INPUT:
-  MIN_SIZE_TRAIN: (640, 800, 1000)
-  MAX_SIZE_TRAIN: 1333
-  MIN_SIZE_TEST: 800
-  MAX_SIZE_TEST: 1333
+  MIN_SIZE_TRAIN: (416,) #, 800, 1000)
+  MAX_SIZE_TRAIN: 416 #1333
+  MIN_SIZE_TEST:  416
+  MAX_SIZE_TEST: 416
 DATALOADER:
-  SIZE_DIVISIBILITY: 32
+  SIZE_DIVISIBILITY: 32 #32
 SOLVER:
   # Assume 4 gpus
   BASE_LR: 0.0025
@@ -51,7 +51,7 @@ SOLVER:
   MAX_ITER: 720000
   IMS_PER_BATCH: 4
 YOLONET:
-  CONFIG_PATH: "/home/stirfryrabbit/Projects/Research_Project/sheepCount/retinamask/configs/yolonet/cfg/yolov3.cfg"
+  CONFIG_PATH: "configs/yolonet/cfg/yolov3.cfg"
 # RETINANET:
 #   RETINANET_ON: True
 #   BACKBONE: "p3p7"
