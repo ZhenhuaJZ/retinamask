@@ -1,6 +1,6 @@
 MODEL:
   META_ARCHITECTURE: "YoloNet"
-  WEIGHT: "" #"catalog://ImageNetPretrained/MSRA/R-101"
+  WEIGHT: "model_0030001.pth" #"catalog://ImageNetPretrained/MSRA/R-101"
   RPN_ONLY: True
   BACKBONE:
     CONV_BODY: "R-101-FPN"
@@ -50,6 +50,7 @@ SOLVER:
   STEPS: (480000, 640000)
   MAX_ITER: 720000
   IMS_PER_BATCH: 4
+  CHECKPOINT_PERIOD: 5000
 YOLONET:
   CONFIG_PATH: "configs/yolonet/cfg/yolov3.cfg"
 # RETINANET:

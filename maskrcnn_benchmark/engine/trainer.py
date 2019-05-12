@@ -9,6 +9,24 @@ from torch.distributed import deprecated as dist
 from maskrcnn_benchmark.utils.comm import get_world_size, get_rank
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger
 
+from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:skip
+
+import argparse
+import os
+
+import torch
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.data import make_data_loader
+from maskrcnn_benchmark.solver import make_lr_scheduler
+from maskrcnn_benchmark.solver import make_optimizer
+from maskrcnn_benchmark.engine.inference import inference
+from maskrcnn_benchmark.modeling.detector import build_detection_model
+from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
+from maskrcnn_benchmark.utils.collect_env import collect_env_info
+from maskrcnn_benchmark.utils.comm import synchronize, get_rank
+from maskrcnn_benchmark.utils.imports import import_file
+from maskrcnn_benchmark.utils.logger import setup_logger
+from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
 def reduce_loss_dict(loss_dict):
     """
@@ -35,6 +53,35 @@ def reduce_loss_dict(loss_dict):
     return reduced_losses
 
 
+def test(cfg, model, distributed):
+    if distributed:
+        model = model.module
+    torch.cuda.empty_cache()  # TODO check if it helps
+    iou_types = ("bbox",)
+    if cfg.MODEL.MASK_ON:
+        iou_types = iou_types + ("segm",)
+    output_folders = [None] * len(cfg.DATASETS.TEST)
+    if cfg.OUTPUT_DIR:
+        dataset_names = cfg.DATASETS.TEST
+        for idx, dataset_name in enumerate(dataset_names):
+            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
+            mkdir(output_folder)
+            output_folders[idx] = output_folder
+    data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)
+    for output_folder, data_loader_val in zip(output_folders, data_loaders_val):
+        inference(
+            model,
+            data_loader_val,
+            iou_types=iou_types,
+            #box_only=cfg.MODEL.RPN_ONLY,
+            box_only=False, #if cfg.RETINANET.RETINANET_ON else cfg.MODEL.RPN_ONLY,
+            device=cfg.MODEL.DEVICE,
+            expected_results=cfg.TEST.EXPECTED_RESULTS,
+            expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
+            output_folder=output_folder,
+        )
+        synchronize()
+
 def do_train(
     model,
     data_loader,
@@ -44,6 +91,8 @@ def do_train(
     device,
     checkpoint_period,
     arguments,
+    cfg = None,
+    distributed = None
 ):
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
     logger.info("Start training")
@@ -82,29 +131,30 @@ def do_train(
         eta_seconds = meters.time.global_avg * (max_iter - iteration)
         eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
 
-        #if iteration % 20 == 0 or iteration == (max_iter - 1):
-        if True:
-            logger.info(
-                meters.delimiter.join(
-                    [
-                        "eta: {eta}",
-                        "iter: {iter}",
-                        "{meters}",
-                        "lr: {lr:.6f}",
-                        "max mem: {memory:.0f}",
-                    ]
-                ).format(
-                    eta=eta_string,
-                    iter=iteration,
-                    meters=str(meters),
-                    lr=optimizer.param_groups[0]["lr"],
-                    memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
+        if iteration % 100 == 0 or iteration == (max_iter - 1):
+            if True:
+                logger.info(
+                    meters.delimiter.join(
+                        [
+                            "eta: {eta}",
+                            "iter: {iter}",
+                            "{meters}",
+                            "lr: {lr:.6f}",
+                            "max mem: {memory:.0f}",
+                        ]
+                    ).format(
+                        eta=eta_string,
+                        iter=iteration,
+                        meters=str(meters),
+                        lr=optimizer.param_groups[0]["lr"],
+                        memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
+                    )
                 )
-            )
-        # exit()
+
         if iteration % checkpoint_period == 0 and iteration > 0:
             checkpointer.save("model_{:07d}".format(iteration+1), **arguments)
-
+            test(cfg, model, distributed)
+            model.train()
     checkpointer.save("model_{:07d}".format(iteration), **arguments)
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))

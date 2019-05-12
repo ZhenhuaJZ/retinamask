@@ -328,7 +328,7 @@ class COCOResults(object):
         # TODO make it pretty
         string = "\n"
         for type in self.results.keys():
-            string = string +"###"+ type + " evaluation\n"
+            string = string +"#########"+ type + " evaluation########\n"
             for ap in self.results[type].keys():
                string = string + ap + ": " + str(self.results[type][ap]) + "\n"
         return string

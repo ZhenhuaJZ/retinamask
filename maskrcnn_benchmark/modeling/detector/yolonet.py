@@ -49,7 +49,6 @@ class YoloNet(nn.Module):
         #    self.mask = build_sparse_mask_head(cfg)
 
     def yolo2BoxList(self, box_list, image_size, topk = 100):
-        ## DEBUG: Check batch output
         detections = []
         for detection in box_list:
             if detection is None:
@@ -66,7 +65,7 @@ class YoloNet(nn.Module):
                 print("objectness: ", detection[:topk, 4])
                 dect.add_field("scores", detection[:topk, 5])
             detections.append(dect)
-        return detection
+        return detections
 
     def forward(self, images, targets=None):
         """
@@ -179,6 +178,4 @@ class YoloNet(nn.Module):
                     )
                 else:
                     x, detections, mask_losses = self.mask(features, proposals, targets)
-                    print("[debug yolonet.py] detections: ", detections)
-                    # print("[debug yolonet.py] detections[0].extra_fields: ", detections[0].extra_fields)
             return detections
