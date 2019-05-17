@@ -25,12 +25,16 @@ class DatasetCatalog(object):
             "train_test_data/coco-style/annotations/annotations_val.json",
         ),
         "coco_2017_train": (
-            "train_test_data/coco-style/train2017",
-            "train_test_data/coco-style/annotations/instances_train2017.json",
+            #"train_test_data/coco-style/train2017",
+            "train_test_data/coco-style/images",
+            #"train_test_data/coco-style/annotations/instances_train2017.json",
+            "train_test_data/coco-style/annotations/annotations_train.json",
         ),
         "coco_2017_val": (
-            "train_test_data/coco-style/val2017",
-            "train_test_data/coco-style/annotations/instances_val2017.json",
+            # "train_test_data/coco-style/val2017",
+            "train_test_data/coco-style/images",
+            # "train_test_data/coco-style/annotations/instances_val2017.json",
+            "train_test_data/coco-style/annotations/annotations_val.json",
         ),
         "coco_2014_train": (
             "coco/train2014",

@@ -136,6 +136,9 @@ class YOLOLayer(nn.Module):
         if self.training:
             io = p.clone()  # inference output
             # DEBUG: May have issue here
+            # print("[debug models.py] torch.sigmoid(io[..., 0:2]): ", torch.sigmoid(io[..., 0:2]).shape)
+            # print("[debug models.py] self.grid_xy: ", self.grid_xy.shape)
+            # print("[debug models.py] torch.sigmoid(io[..., 0:2]): ", torch.sigmoid(io[..., 0:2]))
             io[..., 0:2] = (torch.sigmoid(io[..., 0:2]) + self.grid_xy) * self.stride  # xy
             io[..., 2:4] = (torch.exp(io[..., 2:4]) * self.anchor_wh) * self.stride  # wh yolo method
             # io[..., 2:4] = ((torch.sigmoid(io[..., 2:4]) * 2) ** 3) * self.anchor_wh  # wh power method
@@ -202,10 +205,12 @@ class Darknet(nn.Module):
     def forward(self, x, var=None):
         '''x = image_list class'''
         # extract image size from image_list class
-        img_size = x.image_sizes[0]
-        img_size = [img_size[1],img_size[0]] # [height, width]
+        # img_size = x.image_sizes[0]
+        # img_size = [img_size[1],img_size[0]] # [height, width]
         # Extranct image tensor from image list
         x = x.tensors
+        img_size = x.shape[-2:]# [height, width]
+        # img_size = [img_size[1],img_size[0]]
         layer_outputs = []
         output = []
         # print(self.module_list)
@@ -219,6 +224,8 @@ class Darknet(nn.Module):
                 if len(layer_i) == 1:
                     x = layer_outputs[layer_i[0]]
                 else:
+                    # [print(layer_outputs[i].shape) for i in layer_i]
+                    # exit()
                     x = torch.cat([layer_outputs[i] for i in layer_i], 1)
             elif mtype == 'shortcut':
                 layer_i = int(module_def['from'])
