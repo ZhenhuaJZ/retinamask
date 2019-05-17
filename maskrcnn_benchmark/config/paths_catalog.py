@@ -16,6 +16,14 @@ class DatasetCatalog(object):
             "coco/test2017",
             "coco/annotations/image_info_test2017.json",
         ),
+        "coco_sheep_train": (
+            "train_test_data/coco-style/sheep_img",
+            "train_test_data/coco-style/annotations/annotations_train.json",
+        ),
+        "coco_sheep_val": (
+            "train_test_data/coco-style/sheep_img",
+            "train_test_data/coco-style/annotations/annotations_val.json",
+        ),
         "coco_2017_train": (
             "train_test_data/coco-style/train2017",
             "train_test_data/coco-style/annotations/instances_train2017.json",
