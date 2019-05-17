@@ -275,7 +275,7 @@ def compute_loss(p, targets):  # predictions, targets
     return loss, torch.cat((lxy, lwh, lconf, lcls, loss)).detach()
 
 # DEBUG: May have issue here
-def build_targets(model, targets, img_size):
+def build_targets(model, targets, img_sizes):
     # img_size = [height, width]
     # Retina targets [bbox_list], needed to convert to [batch, class, x, y, w, h]
     # targets = [batch, class, x, y, w, h]
@@ -284,7 +284,7 @@ def build_targets(model, targets, img_size):
     #### modifications
     # Retina target data structure is converted to yolo target data structure
     yolo_targets = []
-    for batch, target in enumerate(targets):
+    for batch, (target, img_size) in enumerate(zip(targets, img_sizes)):
         # Convert retina box [xmin, ymin, w, h] to yolo [xcenter, ycenter, w, h]
         # Use yolo xyxy2xywh method instead of retina .convert("xywh") method
         # Retina convert("xywh") = [xmin, ymin, w, h]

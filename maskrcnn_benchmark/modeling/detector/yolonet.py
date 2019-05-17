@@ -48,17 +48,20 @@ class YoloNet(nn.Module):
         #if cfg.MODEL.SPARSE_MASK_ON:
         #    self.mask = build_sparse_mask_head(cfg)
 
-    def yolo2BoxList(self, box_list, image_size, topk = 100):
+    def yolo2BoxList(self, box_list, image_sizes, img_tensor_sz, topk = 100):
         detections = []
-        for detection in box_list:
+        for detection, image_size in zip(box_list, image_sizes):
             if detection is None:
                 dect = BoxList(torch.zeros((1,4), dtype = torch.float32, device = "cuda:0" ), (image_size[1], image_size[0]), "xyxy")
                 dect.add_field("labels", torch.tensor([1], dtype = torch.int64, device = "cuda:0" ).repeat(len(dect.bbox)))
                 dect.add_field("objectness", torch.tensor([0], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
                 dect.add_field("scores", torch.tensor([0.01], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
             else:
+                # TODO: More efficient division
                 print("num detec: ", len(detection))
-                # print("targets ", targets.convert())
+                tensor_size = torch.tensor([img_tensor_sz[1], img_tensor_sz[0], img_tensor_sz[1], img_tensor_sz[0]], dtype = detection.dtype, device = detection.device)
+                image_size_ = torch.tensor([image_size[1], image_size[0], image_size[1], image_size[0]], dtype = detection.dtype, device = detection.device)
+                bbox = detection[:topk,:4] / tensor_size * image_size_
                 dect = BoxList(detection[:topk,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
                 dect.add_field("labels", detection[:topk, 6].to(torch.int64))
                 dect.add_field("objectness", detection[:topk, 4])
@@ -84,7 +87,9 @@ class YoloNet(nn.Module):
             raise ValueError("In training mode, targets should be passed")
         # Image is converted to image list class
         images = to_image_list(images)
-        image_size = images.image_sizes[0]
+        image_size = images.image_sizes
+        img_tensor_sz = images.tensors.shape
+        # image_size = images.tensors.shape
         ''' Issue 2: outputing feature, and predicted box'''
         # Yolonet is Darknet in model.py
         # need to return layer feature and anchor box
@@ -125,8 +130,7 @@ class YoloNet(nn.Module):
         with torch.no_grad():
             detection = non_max_suppression(detection, conf_thres=0.6, nms_thres=0.6)
             # Convert yolo detection to retina boxlist format
-            detections = self.yolo2BoxList(detection, image_size, topk = 50)
-
+            detections = self.yolo2BoxList(detection, image_size, img_tensor_sz, topk = 50)
         """Mask network"""
         if self.training:
             losses = {}

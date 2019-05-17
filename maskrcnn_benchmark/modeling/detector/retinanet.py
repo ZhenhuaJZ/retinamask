@@ -56,15 +56,20 @@ class RetinaNet(nn.Module):
         images = to_image_list(images)
         # print("[debug retinanet.py] images.tensors.shape: ", images.tensors.shape)
         features = self.backbone(images.tensors)
+        print("[debug] image_size 2", images.image_sizes)
+        print("[debug] images.tensors", images.tensors.shape)
+        print("[debug] target", targets)
 
         # Retina RPN Output
         rpn_features = features
         if self.cfg.RETINANET.BACKBONE == "p2p7":
             rpn_features = features[1:]
+
+        [print(features[i].shape) for i in range(len(features))]
         '''Retinanet module in rpn.retinanet'''
         (anchors, detections), detector_losses = self.rpn(images, rpn_features, targets)
         print("[debug retinanet.py] detections: ", detections)
-
+        exit()
         features = features[3:]
 
         if self.training:

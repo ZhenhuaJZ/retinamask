@@ -39,4 +39,3 @@ class AdjustSmoothL1Loss(nn.Module):
         if size_average:
             return loss.mean()
         return loss.sum()
-
