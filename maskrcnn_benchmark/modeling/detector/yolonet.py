@@ -58,14 +58,14 @@ class YoloNet(nn.Module):
                 dect.add_field("scores", torch.tensor([0.01], dtype = torch.float32, device = "cuda:0" ).repeat(len(dect.bbox)))
             else:
                 # TODO: More efficient division
-                print("num detec: ", len(detection))
+                #print("num detec: ", len(detection))
                 tensor_size = torch.tensor([img_tensor_sz[1], img_tensor_sz[0], img_tensor_sz[1], img_tensor_sz[0]], dtype = detection.dtype, device = detection.device)
                 image_size_ = torch.tensor([image_size[1], image_size[0], image_size[1], image_size[0]], dtype = detection.dtype, device = detection.device)
-                bbox = detection[:topk,:4] / tensor_size * image_size_
-                dect = BoxList(detection[:topk,:4], (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
+                bbox = (detection[:topk,:4] / tensor_size) * image_size_
+                dect = BoxList(bbox, (image_size[1], image_size[0]), "xyxy")#.convert("xyxy")
                 dect.add_field("labels", detection[:topk, 6].to(torch.int64))
                 dect.add_field("objectness", detection[:topk, 4])
-                print("objectness: ", detection[:topk, 4])
+                #print("objectness: ", detection[:topk, 4])
                 dect.add_field("scores", detection[:topk, 5])
             detections.append(dect)
         return detections
@@ -88,7 +88,7 @@ class YoloNet(nn.Module):
         # Image is converted to image list class
         images = to_image_list(images)
         image_size = images.image_sizes
-        img_tensor_sz = images.tensors.shape
+        img_tensor_sz = images.tensors.shape[-2:]
         # image_size = images.tensors.shape
         ''' Issue 2: outputing feature, and predicted box'''
         # Yolonet is Darknet in model.py

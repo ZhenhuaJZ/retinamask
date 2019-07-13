@@ -205,12 +205,14 @@ class Darknet(nn.Module):
     def forward(self, x, var=None):
         '''x = image_list class'''
         # extract image size from image_list class
-        # img_size = x.image_sizes[0]
-        # img_size = [img_size[1],img_size[0]] # [height, width]
+        #img_size = x.image_sizes[0]
+        #img_size = [img_size[1],img_size[0]] # [height, width]
         # Extranct image tensor from image list
         x = x.tensors
+        #print(x.shape)
         img_size = x.shape[-2:]# [height, width]
-        # img_size = [img_size[1],img_size[0]]
+        img_size = [img_size[1],img_size[0]] # [width, height]
+        
         layer_outputs = []
         output = []
         # print(self.module_list)
